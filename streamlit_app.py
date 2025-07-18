@@ -1250,7 +1250,7 @@ class KotogawaMonitor:
             # 空のカラム
             pass
     
-    def get_common_time_range(self, history_data: List[Dict[str, Any]], display_hours: int = 24, demo_mode: bool = False) -> tuple:
+    def get_common_time_range(self, history_data: List[Dict[str, Any]], display_hours: int = 24, demo_mode: bool = False, demo_datetime: Optional[datetime] = None) -> tuple:
         """履歴データから共通の時間範囲を取得（将来予測値を考慮）"""
         if not history_data:
             return None, None
@@ -2558,6 +2558,58 @@ def main():
             value=False,
             help="過去の河川・ダムデータ（2023/6/25-7/2）を表示します"
         )
+        
+        # デモモード時の日時選択
+        demo_datetime = None
+        if demo_mode:
+            st.markdown("**デモモード日時設定**")
+            col_date, col_time = st.columns(2)
+            
+            with col_date:
+                demo_date = st.date_input(
+                    "日付",
+                    value=datetime(2023, 6, 30).date(),
+                    min_value=datetime(2023, 6, 25).date(),
+                    max_value=datetime(2023, 7, 1).date(),
+                    help="2023/6/25〜7/1の範囲で選択"
+                )
+            
+            with col_time:
+                demo_time = st.time_input(
+                    "時刻",
+                    value=datetime(2023, 6, 30, 12, 0).time(),
+                    help="表示する時刻を選択"
+                )
+            
+            # 日時を結合
+            demo_datetime = datetime.combine(demo_date, demo_time)
+            demo_datetime = demo_datetime.replace(tzinfo=ZoneInfo('Asia/Tokyo'))
+        
+        # デモモード時の日時選択
+        demo_datetime = None
+        if demo_mode:
+            st.markdown("**デモモード日時設定**")
+            col_date, col_time = st.columns(2)
+            
+            with col_date:
+                demo_date = st.date_input(
+                    "日付",
+                    value=datetime(2023, 6, 30).date(),
+                    min_value=datetime(2023, 6, 25).date(),
+                    max_value=datetime(2023, 7, 1).date(),
+                    help="2023/6/25〜7/1の範囲で選択"
+                )
+            
+            with col_time:
+                demo_time = st.time_input(
+                    "時刻",
+                    value=datetime(2023, 6, 30, 12, 0).time(),
+                    help="表示する時刻を選択"
+                )
+            
+            # 日時を結合
+            demo_datetime = datetime.combine(demo_date, demo_time)
+            demo_datetime = demo_datetime.replace(tzinfo=ZoneInfo('Asia/Tokyo'))
     
     # アラート閾値設定
     with st.sidebar.expander("アラート設定", expanded=False):
@@ -2590,13 +2642,40 @@ def main():
         # デモモードの場合はサンプルデータを読み込む
         with st.spinner('デモデータを読み込み中...'):
             sample_data = monitor.load_sample_csv_data()
-            if sample_data:
+            if sample_data and demo_datetime:
+                # 選択された日時を基準にデータをフィルタリング
+                # demo_datetimeより前のデータのみを抽出（表示期間分）
+                filtered_sample_data = []
+                for data in sample_data:
+                    try:
+                        data_time = datetime.fromisoformat(data.get('data_time', data.get('timestamp')).replace('Z', '+00:00'))
+                        if data_time.tzinfo is None:
+                            data_time = data_time.replace(tzinfo=ZoneInfo('Asia/Tokyo'))
+                        else:
+                            data_time = data_time.astimezone(ZoneInfo('Asia/Tokyo'))
+                        
+                        # 選択日時から過去display_hours時間分のデータを取得
+                        if data_time <= demo_datetime and data_time >= demo_datetime - timedelta(hours=display_hours):
+                            filtered_sample_data.append(data)
+                    except:
+                        continue
+                
+                # 選択日時に最も近いデータを最新データとする
+                if filtered_sample_data:
+                    latest_data = max(filtered_sample_data, key=lambda x: datetime.fromisoformat(
+                        x.get('data_time', x.get('timestamp')).replace('Z', '+00:00')
+                    ).astimezone(ZoneInfo('Asia/Tokyo')))
+                    history_data = filtered_sample_data
+                else:
+                    latest_data = None
+                    history_data = []
+            elif sample_data:
                 latest_data = sample_data[-1]  # 最新のデータポイントを取得
                 history_data = sample_data
             else:
                 latest_data = None
                 history_data = []
-        cache_key = "demo_mode"
+        cache_key = f"demo_mode_{demo_datetime.isoformat() if demo_datetime else 'default'}"
     else:
         # 通常モード
         with st.spinner('データを更新中...'):
@@ -2621,15 +2700,20 @@ def main():
     
     # デモモード表示
     if demo_mode:
-        # 動的な時間範囲を計算
-        time_min, time_max = monitor.get_common_time_range(history_data, display_hours, demo_mode)
-        if time_min and time_max:
-            # 日本時間で表示
-            time_min_jst = time_min.strftime("%Y年%m月%d日")
-            time_max_jst = time_max.strftime("%Y年%m月%d日")
-            st.info(f"📊 デモデータ表示中（{time_min_jst}〜{time_max_jst}）")
+        if demo_datetime:
+            # 選択された日時を表示
+            demo_datetime_str = demo_datetime.strftime("%Y年%m月%d日 %H:%M")
+            st.info(f"📊 デモデータ表示中（選択日時: {demo_datetime_str}）")
         else:
-            st.info("📊 デモデータ表示中")
+            # 動的な時間範囲を計算
+            time_min, time_max = monitor.get_common_time_range(history_data, display_hours, demo_mode)
+            if time_min and time_max:
+                # 日本時間で表示
+                time_min_jst = time_min.strftime("%Y年%m月%d日")
+                time_max_jst = time_max.strftime("%Y年%m月%d日")
+                st.info(f"📊 デモデータ表示中（{time_min_jst}〜{time_max_jst}）")
+            else:
+                st.info("📊 デモデータ表示中")
     
     if latest_data:
         # 状態、更新時間、API取得時間を3列で表示
