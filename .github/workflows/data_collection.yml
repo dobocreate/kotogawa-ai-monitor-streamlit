@@ -1,0 +1,72 @@
+name: Data Collection
+
+on:
+  schedule:
+    # 本番用設定: 10分ごとに実行 (UTC時間) - 毎時3分から開始
+    # - cron: '3,13,23,33,43,53 * * * *'
+    # 開発用設定: 1時間ごとに実行
+    - cron: '3 * * * *'
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  collect-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Configure git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+    - name: Run data collection
+      run: |
+        python scripts/collect_data.py
+        
+    - name: Check for changes
+      id: changes
+      run: |
+        if [[ -n $(git status --porcelain) ]]; then
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+        else
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Commit and push changes
+      if: steps.changes.outputs.has_changes == 'true'
+      run: |
+        git add data/
+        git commit -m "📊 Update monitoring data - $(date '+%Y-%m-%d %H:%M:%S UTC')"
+        git pull --rebase origin main
+        git push
+        
+    - name: Cleanup on failure
+      if: failure()
+      run: |
+        echo "Data collection failed at $(date)"
+        # Optional: Create error log
+        echo "$(date): Data collection failed" >> data/error.log || true

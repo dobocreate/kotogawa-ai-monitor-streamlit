@@ -1,0 +1,142 @@
+{
+  "timestamp": "2025-07-13T15:56:24.621402+09:00",
+  "data_time": "2025-07-13T15:50:00+09:00",
+  "dam": {
+    "water_level": 36.98,
+    "storage_rate": 99.8,
+    "inflow": 6.87,
+    "outflow": 6.02,
+    "storage_change": null
+  },
+  "river": {
+    "water_level": 2.83,
+    "level_change": 0.0,
+    "status": "正常"
+  },
+  "rainfall": {
+    "hourly": null,
+    "cumulative": null,
+    "change": null
+  },
+  "weather": {
+    "today": {
+      "weather_code": "112",
+      "weather_text": "晴れ　後　くもり　夜遅く　雨　所により　昼過ぎ　から　雷　を伴う",
+      "temp_max": 33,
+      "temp_min": 33,
+      "precipitation_probability": [
+        30,
+        60
+      ],
+      "precipitation_times": [
+        "12時",
+        "18時"
+      ]
+    },
+    "tomorrow": {
+      "weather_code": "302",
+      "weather_text": "雨　朝晩　くもり　所により　朝　から　昼前　雷を伴い　激しく　降る",
+      "temp_max": 29,
+      "temp_min": 27,
+      "precipitation_probability": [
+        60,
+        70,
+        50,
+        20
+      ],
+      "precipitation_times": [
+        "00時",
+        "06時",
+        "12時",
+        "18時"
+      ]
+    },
+    "day_after_tomorrow": {
+      "weather_code": "200",
+      "weather_text": "くもり",
+      "temp_max": 33,
+      "temp_min": 26,
+      "precipitation_probability": [
+        40
+      ],
+      "precipitation_times": [
+        "日中"
+      ]
+    },
+    "update_time": "2025-07-13T11:00:00+09:00",
+    "weekly_forecast": [
+      {
+        "date": "2025-07-14",
+        "day_of_week": "Mon",
+        "weather_code": "302",
+        "weather_text": "雨時々くもり",
+        "precipitation_probability": null,
+        "temp_max": null,
+        "temp_min": null
+      },
+      {
+        "date": "2025-07-15",
+        "day_of_week": "Tue",
+        "weather_code": "200",
+        "weather_text": "くもり",
+        "precipitation_probability": 40,
+        "temp_max": 33,
+        "temp_min": 26
+      },
+      {
+        "date": "2025-07-16",
+        "day_of_week": "Wed",
+        "weather_code": "201",
+        "weather_text": "くもり時々晴れ",
+        "precipitation_probability": 30,
+        "temp_max": 34,
+        "temp_min": 27
+      },
+      {
+        "date": "2025-07-17",
+        "day_of_week": "Thu",
+        "weather_code": "202",
+        "weather_text": "くもり一時雨",
+        "precipitation_probability": 50,
+        "temp_max": 33,
+        "temp_min": 27
+      },
+      {
+        "date": "2025-07-18",
+        "day_of_week": "Fri",
+        "weather_code": "202",
+        "weather_text": "くもり一時雨",
+        "precipitation_probability": 50,
+        "temp_max": 32,
+        "temp_min": 27
+      },
+      {
+        "date": "2025-07-19",
+        "day_of_week": "Sat",
+        "weather_code": "101",
+        "weather_text": "晴れ時々くもり",
+        "precipitation_probability": 20,
+        "temp_max": 33,
+        "temp_min": 27
+      },
+      {
+        "date": "2025-07-20",
+        "day_of_week": "Sun",
+        "weather_code": "101",
+        "weather_text": "晴れ時々くもり",
+        "precipitation_probability": 20,
+        "temp_max": 33,
+        "temp_min": 27
+      }
+    ]
+  },
+  "precipitation_intensity": {
+    "observation": [
+      {
+        "datetime": "2025-07-13T15:05:00+09:00",
+        "intensity": 0.0
+      }
+    ],
+    "update_time": "2025-07-13T15:56:24.621300+09:00"
+  }
+}
