@@ -1397,7 +1397,7 @@ class KotogawaMonitor:
             )
             
             # AI予測の追加
-            if AI_PREDICTION_AVAILABLE and not demo_mode:
+            if AI_PREDICTION_AVAILABLE:
                 try:
                     # 予測器の初期化（セッション状態で管理）
                     if 'predictor' not in st.session_state:
