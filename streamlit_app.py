@@ -2571,40 +2571,16 @@ def main():
                     value=datetime(2023, 6, 30).date(),
                     min_value=datetime(2023, 6, 25).date(),
                     max_value=datetime(2023, 7, 1).date(),
-                    help="2023/6/25〜7/1の範囲で選択"
+                    help="2023/6/25〜7/1の範囲で選択",
+                    key="demo_date_input"  # 一意のキーを追加
                 )
             
             with col_time:
                 demo_time = st.time_input(
                     "時刻",
                     value=datetime(2023, 6, 30, 12, 0).time(),
-                    help="表示する時刻を選択"
-                )
-            
-            # 日時を結合
-            demo_datetime = datetime.combine(demo_date, demo_time)
-            demo_datetime = demo_datetime.replace(tzinfo=ZoneInfo('Asia/Tokyo'))
-        
-        # デモモード時の日時選択
-        demo_datetime = None
-        if demo_mode:
-            st.markdown("**デモモード日時設定**")
-            col_date, col_time = st.columns(2)
-            
-            with col_date:
-                demo_date = st.date_input(
-                    "日付",
-                    value=datetime(2023, 6, 30).date(),
-                    min_value=datetime(2023, 6, 25).date(),
-                    max_value=datetime(2023, 7, 1).date(),
-                    help="2023/6/25〜7/1の範囲で選択"
-                )
-            
-            with col_time:
-                demo_time = st.time_input(
-                    "時刻",
-                    value=datetime(2023, 6, 30, 12, 0).time(),
-                    help="表示する時刻を選択"
+                    help="表示する時刻を選択",
+                    key="demo_time_input"  # 一意のキーを追加
                 )
             
             # 日時を結合
