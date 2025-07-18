@@ -27,15 +27,19 @@ from streamlit_autorefresh import st_autorefresh
 try:
     import sys
     sys.path.append(str(Path(__file__).parent))
-    from scripts.improved_prediction import ImprovedRiverLevelPredictor
+    from scripts.advanced_prediction import AdvancedRiverLevelPredictor
     AI_PREDICTION_AVAILABLE = True
 except ImportError:
     try:
-        from scripts.simple_prediction import SimpleRiverLevelPredictor as ImprovedRiverLevelPredictor
+        from scripts.improved_prediction import ImprovedRiverLevelPredictor as AdvancedRiverLevelPredictor
         AI_PREDICTION_AVAILABLE = True
     except ImportError:
-        AI_PREDICTION_AVAILABLE = False
-        print("AI予測機能が利用できません。")
+        try:
+            from scripts.simple_prediction import SimpleRiverLevelPredictor as AdvancedRiverLevelPredictor
+            AI_PREDICTION_AVAILABLE = True
+        except ImportError:
+            AI_PREDICTION_AVAILABLE = False
+            print("AI予測機能が利用できません。")
 
 # ページ設定
 st.set_page_config(
@@ -1405,7 +1409,7 @@ class KotogawaMonitor:
                 try:
                     # 予測器の初期化（セッション状態で管理）
                     if 'predictor' not in st.session_state:
-                        st.session_state.predictor = ImprovedRiverLevelPredictor()
+                        st.session_state.predictor = AdvancedRiverLevelPredictor()
                     
                     predictor = st.session_state.predictor
                     
