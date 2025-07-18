@@ -24,6 +24,9 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
 # AI予測モジュールのインポート
+AI_PREDICTION_AVAILABLE = False
+RIVER_LEARNING_AVAILABLE = False
+
 try:
     import sys
     sys.path.append(str(Path(__file__).parent))
@@ -39,7 +42,15 @@ except ImportError:
             AI_PREDICTION_AVAILABLE = True
         except ImportError:
             AI_PREDICTION_AVAILABLE = False
-            print("AI予測機能が利用できません。")
+            print("エキスパートルール予測が利用できません。")
+
+# Riverオンライン学習モジュールのインポート
+try:
+    from scripts.river_online_prediction import RiverOnlinePredictor
+    RIVER_LEARNING_AVAILABLE = True
+except ImportError:
+    RIVER_LEARNING_AVAILABLE = False
+    print("Riverオンライン学習が利用できません。")
 
 # ページ設定
 st.set_page_config(
@@ -1408,8 +1419,22 @@ class KotogawaMonitor:
             if AI_PREDICTION_AVAILABLE:
                 try:
                     # 予測器の初期化（セッション状態で管理）
-                    if 'predictor' not in st.session_state:
-                        st.session_state.predictor = AdvancedRiverLevelPredictor()
+                    # 選択されたモデルに基づいて予測器を初期化
+                    selected_model = st.session_state.get('prediction_model', 'エキスパートルール予測')
+                    
+                    # モデルが変更された場合は再初期化
+                    if ('predictor' not in st.session_state or 
+                        st.session_state.get('last_prediction_model') != selected_model):
+                        
+                        if selected_model == "Riverオンライン学習予測" and RIVER_LEARNING_AVAILABLE:
+                            st.session_state.predictor = RiverOnlinePredictor()
+                            # 過去データがあれば学習
+                            if len(history_data) >= 50:
+                                st.session_state.predictor.learn(history_data)
+                        else:
+                            st.session_state.predictor = AdvancedRiverLevelPredictor()
+                        
+                        st.session_state.last_prediction_model = selected_model
                     
                     predictor = st.session_state.predictor
                     
@@ -1428,12 +1453,14 @@ class KotogawaMonitor:
                             ])
                             
                             # AI予測線を追加（破線）
+                            # モデル名を表示に含める
+                            model_name = "エキスパート" if selected_model == "エキスパートルール予測" else "River学習"
                             fig.add_trace(
                                 go.Scatter(
                                     x=pred_df['timestamp'],
                                     y=pred_df['predicted_level'],
                                     mode='lines',
-                                    name='河川水位（AI予測）',
+                                    name=f'河川水位（AI予測: {model_name}）',
                                     line=dict(color='#1f77b4', width=3, dash='dash'),
                                     showlegend=True
                                 ),
@@ -2552,6 +2579,19 @@ def main():
             value=False,
             help="チェックを入れるとグラフの拡大・縮小・移動が可能になります"
         )
+        
+        # AI予測モデル選択
+        if AI_PREDICTION_AVAILABLE:
+            st.markdown("**AI予測設定**")
+            prediction_model = st.radio(
+                "予測モデル",
+                ["エキスパートルール予測", "Riverオンライン学習予測"],
+                index=0,
+                help="予測モデルを選択してください"
+            )
+            
+            # セッション状態に保存
+            st.session_state.prediction_model = prediction_model
         
         # 週間天気表示設定
         show_weekly_weather = st.checkbox(

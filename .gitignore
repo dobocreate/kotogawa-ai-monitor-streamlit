@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-.venv/
-=======
 # Python
 __pycache__/
 *.py[cod]
@@ -30,4 +27,3 @@ Thumbs.db
 .env.local
 doc/
 kotogawa_env/
->>>>>>> upstream/main
