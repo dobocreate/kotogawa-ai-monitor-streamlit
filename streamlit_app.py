@@ -52,6 +52,14 @@ except ImportError:
     RIVER_LEARNING_AVAILABLE = False
     print("Riverオンライン学習が利用できません。")
 
+# 予測評価モジュールのインポート
+try:
+    from scripts.prediction_evaluator import PredictionEvaluator
+    EVALUATION_AVAILABLE = True
+except ImportError:
+    EVALUATION_AVAILABLE = False
+    print("予測評価機能が利用できません。")
+
 # ページ設定
 st.set_page_config(
     page_title="厚東川監視システム",
@@ -1484,6 +1492,51 @@ class KotogawaMonitor:
                             # 予測情報をセッション状態に保存
                             st.session_state.last_prediction_time = datetime.now()
                             st.session_state.last_predictions = predictions
+                            st.session_state.last_prediction_model = selected_model
+                            
+                            # 予測評価の実行（過去の予測と実測値を比較）
+                            if EVALUATION_AVAILABLE:
+                                try:
+                                    # 評価器の初期化（セッション状態で管理）
+                                    if 'evaluator' not in st.session_state:
+                                        st.session_state.evaluator = PredictionEvaluator()
+                                        # 保存済みデータがあれば読み込み
+                                        eval_file = "data/evaluation_results.json"
+                                        if Path(eval_file).exists():
+                                            st.session_state.evaluator.load_from_file(eval_file)
+                                    
+                                    # 過去の予測があれば評価
+                                    if hasattr(st.session_state, 'past_predictions'):
+                                        # 3時間前の予測を確認
+                                        current_time = datetime.now()
+                                        for past_pred_info in st.session_state.past_predictions:
+                                            pred_time = past_pred_info['time']
+                                            if (current_time - pred_time).total_seconds() >= 10800:  # 3時間以上経過
+                                                # 実測値と比較して評価
+                                                model_type = 'expert_rule' if past_pred_info['model'] == "エキスパートルール予測" else 'river_online'
+                                                st.session_state.evaluator.evaluate_prediction(
+                                                    past_pred_info['predictions'],
+                                                    history_data,
+                                                    model_type
+                                                )
+                                                # 評価済みを削除
+                                                st.session_state.past_predictions.remove(past_pred_info)
+                                    
+                                    # 現在の予測を保存
+                                    if 'past_predictions' not in st.session_state:
+                                        st.session_state.past_predictions = []
+                                    st.session_state.past_predictions.append({
+                                        'time': datetime.now(),
+                                        'predictions': predictions,
+                                        'model': selected_model
+                                    })
+                                    
+                                    # 定期的に保存
+                                    if len(st.session_state.evaluator.evaluation_results.get('expert_rule', {}).get('history', [])) % 10 == 0:
+                                        st.session_state.evaluator.save_to_file("data/evaluation_results.json")
+                                        
+                                except Exception as e:
+                                    print(f"予測評価エラー: {e}")
                                 
                 except Exception as e:
                     # エラーが発生してもグラフ表示は続行
@@ -2592,6 +2645,34 @@ def main():
             
             # セッション状態に保存
             st.session_state.prediction_model = prediction_model
+            
+            # モデル解説へのリンク
+            st.markdown("[🤖 AI予測モデルの詳細解説を見る](/AI予測モデル解説)")
+            
+            # 現在の予測精度を表示
+            if EVALUATION_AVAILABLE and 'evaluator' in st.session_state:
+                evaluator = st.session_state.evaluator
+                model_type = 'expert_rule' if prediction_model == "エキスパートルール予測" else 'river_online'
+                
+                if model_type in evaluator.evaluation_results:
+                    latest = evaluator.evaluation_results[model_type].get('latest')
+                    if latest and 'overall' in latest:
+                        score = latest['overall'].get('score', 0)
+                        mae = latest['overall'].get('mae', 0)
+                        
+                        # スコアに応じて色を変更
+                        if score >= 80:
+                            color = "green"
+                        elif score >= 60:
+                            color = "orange"
+                        else:
+                            color = "red"
+                            
+                        st.markdown(f"**現在の精度スコア:** <span style='color: {color}'>{score:.1f}/100</span>", unsafe_allow_html=True)
+                        st.caption(f"平均絶対誤差: {mae:.3f}m")
+                        
+            # 予測精度評価ページへのリンク
+            st.markdown("[📈 予測精度の詳細を見る](/予測精度評価)")
         
         # 週間天気表示設定
         show_weekly_weather = st.checkbox(
