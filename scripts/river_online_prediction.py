@@ -64,9 +64,7 @@ class RiverOnlinePredictor:
             
             # 2. AMRules（ルールベース学習）
             amrules_model = rules.AMRules(
-                grace_period=50,
-                tie_threshold=0.05,
-                expand_confidence=0.01
+                delta=0.01
             )
             
             # 3. 線形回帰モデル（ベースライン）
@@ -79,7 +77,6 @@ class RiverOnlinePredictor:
             ensemble_model = ensemble.AdaptiveRandomForestRegressor(
                 n_models=3,
                 seed=42,
-                grace_period=50,
                 delta=0.01
             )
             
