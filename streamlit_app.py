@@ -1467,6 +1467,11 @@ class KotogawaMonitor:
                     if len(history_data) >= 18:  # 3時間分のデータ
                         predictions = predictor.predict(history_data)
                         
+                        # River予測でデータ不足の場合のエラーを追加
+                        if predictions is None and selected_model == "Riverオンライン学習予測":
+                            error_msg = f"Riverオンライン学習予測には12時間分（72サンプル）のデータが必要です。現在のデータ数: {len(history_data)}サンプル"
+                            st.session_state['ai_prediction_error'] = error_msg
+                        
                         if predictions:
                             # 予測データをDataFrameに変換
                             pred_df = pd.DataFrame([
@@ -1558,6 +1563,8 @@ class KotogawaMonitor:
                 except Exception as e:
                     # エラーが発生してもグラフ表示は続行
                     print(f"AI予測エラー: {e}")
+                    # セッション状態にエラーを保存
+                    st.session_state['ai_prediction_error'] = str(e)
         
         # ダム全放流量（右軸）
         if 'outflow' in df.columns:
@@ -2836,6 +2843,12 @@ def main():
                 st.info(f"📊 デモデータ表示中（{time_min_jst}〜{time_max_jst}）")
             else:
                 st.info("📊 デモデータ表示中")
+        
+        # AI予測エラーがある場合は表示
+        if 'ai_prediction_error' in st.session_state:
+            st.error(f"⚠️ AI予測エラー: {st.session_state['ai_prediction_error']}")
+            # エラーをクリア
+            del st.session_state['ai_prediction_error']
     
     if latest_data:
         # 状態、更新時間、API取得時間を3列で表示
