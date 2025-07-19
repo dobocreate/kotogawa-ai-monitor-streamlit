@@ -57,7 +57,7 @@ class RiverOnlinePredictor:
             # 1. Hoeffding Adaptive Tree（非線形パターン対応）
             hat_model = tree.HoeffdingAdaptiveTreeRegressor(
                 grace_period=50,
-                split_confidence=0.01,
+                delta=0.01,
                 leaf_prediction='adaptive',
                 model_selector_decay=0.95
             )

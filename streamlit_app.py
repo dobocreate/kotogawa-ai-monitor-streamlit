@@ -2849,6 +2849,12 @@ def main():
             st.error(f"⚠️ AI予測エラー: {st.session_state['ai_prediction_error']}")
             # エラーをクリア
             del st.session_state['ai_prediction_error']
+    else:
+        # 通常モードでもAI予測エラーがある場合は表示
+        if 'ai_prediction_error' in st.session_state:
+            st.error(f"⚠️ AI予測エラー: {st.session_state['ai_prediction_error']}")
+            # エラーをクリア
+            del st.session_state['ai_prediction_error']
     
     if latest_data:
         # 状態、更新時間、API取得時間を3列で表示
