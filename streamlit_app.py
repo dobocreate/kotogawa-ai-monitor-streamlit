@@ -1054,7 +1054,7 @@ class KotogawaMonitor:
                         else:
                             time_min, time_max = self.get_common_time_range(history_data, display_hours, demo_mode=False)
                             if time_min and time_max:
-                                filtered_history_data = self.filter_data_by_time_range(history_data, time_min, time_max - timedelta(hours=2))
+                                filtered_history_data = self.filter_data_by_time_range(history_data, time_min, time_max)
                             else:
                                 filtered_history_data = history_data
                         
@@ -1353,7 +1353,7 @@ class KotogawaMonitor:
         else:
             time_min, time_max = self.get_common_time_range(history_data, display_hours, demo_mode=False)
             if time_min and time_max:
-                filtered_data = self.filter_data_by_time_range(history_data, time_min, time_max - timedelta(hours=2))
+                filtered_data = self.filter_data_by_time_range(history_data, time_min, time_max)
             else:
                 filtered_data = history_data
         
@@ -1651,7 +1651,7 @@ class KotogawaMonitor:
         else:
             time_min, time_max = self.get_common_time_range(history_data, display_hours, demo_mode=False)
             if time_min and time_max:
-                filtered_data = self.filter_data_by_time_range(history_data, time_min, time_max - timedelta(hours=2))
+                filtered_data = self.filter_data_by_time_range(history_data, time_min, time_max)
             else:
                 filtered_data = history_data
         
@@ -1924,7 +1924,7 @@ class KotogawaMonitor:
         else:
             time_min, time_max = self.get_common_time_range(history_data, display_hours, demo_mode=False)
             if time_min and time_max:
-                filtered_data = self.filter_data_by_time_range(history_data, time_min, time_max - timedelta(hours=2))
+                filtered_data = self.filter_data_by_time_range(history_data, time_min, time_max)
             else:
                 filtered_data = history_data
         
@@ -2197,7 +2197,7 @@ class KotogawaMonitor:
         else:
             time_min, time_max = self.get_common_time_range(history_data, display_hours, demo_mode=False)
             if time_min and time_max:
-                filtered_data = self.filter_data_by_time_range(history_data, time_min, time_max - timedelta(hours=2))
+                filtered_data = self.filter_data_by_time_range(history_data, time_min, time_max)
             else:
                 filtered_data = history_data
         
