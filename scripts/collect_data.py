@@ -11,15 +11,33 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional, Any, Union
-import requests
-from bs4 import BeautifulSoup
+
+# 必須モジュールのインポートチェック
+try:
+    import requests
+except ImportError as e:
+    print(f"Error importing requests: {e}")
+    print("Please install requests: pip install requests")
+    raise
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError as e:
+    print(f"Error importing BeautifulSoup: {e}")
+    print("Please install beautifulsoup4: pip install beautifulsoup4")
+    raise
 
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
     # Python 3.8以前の場合
-    import pytz
-    ZoneInfo = lambda x: pytz.timezone(x)
+    try:
+        import pytz
+        ZoneInfo = lambda x: pytz.timezone(x)
+    except ImportError as e:
+        print(f"Error importing timezone library: {e}")
+        print("Please install pytz: pip install pytz")
+        raise
 
 class KotogawaDataCollector:
     def __init__(self):
@@ -51,20 +69,28 @@ class KotogawaDataCollector:
     def fetch_page(self, url: str, params: Dict[str, str]) -> Optional[BeautifulSoup]:
         """指定されたURLからHTMLを取得し、BeautifulSoupオブジェクトを返す"""
         last_error = None
+        print(f"Fetching URL: {url} with params: {params}")
+        
         for attempt in range(self.max_retries):
             try:
+                print(f"Attempt {attempt + 1}/{self.max_retries}...")
                 response = requests.get(
                     url, 
                     params=params, 
                     headers=self.headers, 
                     timeout=self.timeout
                 )
+                print(f"Response status code: {response.status_code}")
                 response.raise_for_status()
                 
                 # レスポンスサイズをチェック
-                if len(response.content) < 100:
-                    raise requests.RequestException(f"Response too small: {len(response.content)} bytes")
+                content_length = len(response.content)
+                print(f"Response content length: {content_length} bytes")
+                if content_length < 100:
+                    raise requests.RequestException(f"Response too small: {content_length} bytes")
                 
+                # エンコーディングを明示的に設定
+                response.encoding = response.apparent_encoding or 'utf-8'
                 return BeautifulSoup(response.content, 'html.parser')
                 
             except requests.RequestException as e:
@@ -72,16 +98,24 @@ class KotogawaDataCollector:
                 error_msg = f"Attempt {attempt + 1}/{self.max_retries} failed: {type(e).__name__}: {e}"
                 print(error_msg)
                 
+                # GitHub Actions環境の場合、追加のデバッグ情報を出力
+                if os.environ.get('GITHUB_ACTIONS'):
+                    print(f"::warning::Request failed - URL: {url}, Error: {e}")
+                
                 if attempt < self.max_retries - 1:
                     wait_time = self.retry_delay * (attempt + 1)  # 指数バックオフ
                     print(f"Waiting {wait_time} seconds before retry...")
                     time.sleep(wait_time)
                 else:
                     print(f"Failed to fetch {url} after {self.max_retries} attempts. Last error: {last_error}")
+                    if os.environ.get('GITHUB_ACTIONS'):
+                        print(f"::error::Failed to fetch data from {url} after {self.max_retries} attempts")
                     return None
             except Exception as e:
                 last_error = e
                 print(f"Unexpected error on attempt {attempt + 1}: {type(e).__name__}: {e}")
+                if os.environ.get('GITHUB_ACTIONS'):
+                    print(f"::error::Unexpected error: {type(e).__name__}: {e}")
                 if attempt < self.max_retries - 1:
                     time.sleep(self.retry_delay)
                 else:
@@ -1517,14 +1551,47 @@ class KotogawaDataCollector:
 
 def main():
     """メイン関数"""
+    # GitHub Actions環境かどうかを確認
+    is_github_actions = os.environ.get('GITHUB_ACTIONS') == 'true'
+    
+    if is_github_actions:
+        print("::group::KotogawaDataCollector Initialization")
+    
     collector = KotogawaDataCollector()
     
+    if is_github_actions:
+        print("::endgroup::")
+    
     try:
+        if is_github_actions:
+            print("::group::Data Collection Process")
+        
         data = collector.collect_all_data()
+        
+        if is_github_actions:
+            print("::endgroup::")
+        
         print("Collection process completed!")
-        print(f"Latest data: {json.dumps(data, ensure_ascii=False, indent=2, default=str)}")
+        
+        # データの要約を出力（詳細なJSONは省略）
+        if 'dam' in data and data['dam'].get('water_level') is not None:
+            print(f"Dam water level: {data['dam']['water_level']}m")
+        if 'river' in data and data['river'].get('water_level') is not None:
+            print(f"River water level: {data['river']['water_level']}m")
+        
+        if is_github_actions:
+            print("::notice::Data collection completed successfully")
+            
     except Exception as e:
         print(f"Critical error during data collection: {e}")
+        
+        # スタックトレースを出力
+        import traceback
+        traceback.print_exc()
+        
+        if is_github_actions:
+            print(f"::error::Critical error during data collection: {type(e).__name__}: {e}")
+        
         # クリティカルエラーの場合もエラーファイルを保存
         try:
             from zoneinfo import ZoneInfo
@@ -1545,7 +1612,8 @@ def main():
             'errors': [{
                 'step': 'main_execution',
                 'error': str(e),
-                'error_type': type(e).__name__
+                'error_type': type(e).__name__,
+                'traceback': traceback.format_exc()
             }],
             'total_errors': 1,
             'observation_time': None
