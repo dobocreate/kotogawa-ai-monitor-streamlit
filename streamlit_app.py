@@ -1289,8 +1289,14 @@ class KotogawaMonitor:
             for data in history_data:
                 if data.get('timestamp'):
                     try:
-                        ts = datetime.fromisoformat(data['timestamp'].replace('+09:00', ''))
-                        ts = ts.replace(tzinfo=ZoneInfo('Asia/Tokyo'))
+                        # fromisoformatは+09:00などのタイムゾーン情報を正しく処理できる
+                        ts = datetime.fromisoformat(data['timestamp'])
+                        # タイムゾーンがない場合のみJSTを設定
+                        if ts.tzinfo is None:
+                            ts = ts.replace(tzinfo=ZoneInfo('Asia/Tokyo'))
+                        else:
+                            # 既にタイムゾーンがある場合は、JSTに変換
+                            ts = ts.astimezone(ZoneInfo('Asia/Tokyo'))
                         if latest_timestamp is None or ts > latest_timestamp:
                             latest_timestamp = ts
                     except (ValueError, AttributeError):
@@ -1320,24 +1326,35 @@ class KotogawaMonitor:
         """指定された時間範囲でデータをフィルタリング"""
         filtered_data = []
         
+        # start_timeとend_timeがタイムゾーンを持っているか確認
+        if start_time.tzinfo is None:
+            start_time = start_time.replace(tzinfo=ZoneInfo('Asia/Tokyo'))
+        if end_time.tzinfo is None:
+            end_time = end_time.replace(tzinfo=ZoneInfo('Asia/Tokyo'))
+        
         for item in history_data:
             data_time = item.get('data_time') or item.get('timestamp', '')
             if not data_time:
                 continue
                 
             try:
-                dt = datetime.fromisoformat(data_time.replace('Z', '+00:00'))
+                # fromisoformatは+09:00などのタイムゾーン情報を正しく処理できる
+                dt = datetime.fromisoformat(data_time)
+                
+                # タイムゾーンがない場合のみJSTを設定
                 if dt.tzinfo is None:
                     dt = dt.replace(tzinfo=ZoneInfo('Asia/Tokyo'))
                 else:
+                    # 既にタイムゾーンがある場合は、JSTに変換
                     dt = dt.astimezone(ZoneInfo('Asia/Tokyo'))
                 
                 # 指定された時間範囲内のデータのみ追加
                 if start_time <= dt <= end_time:
                     filtered_data.append(item)
                     
-            except Exception:
-                # タイムスタンプ解析エラーの場合はスキップ
+            except Exception as e:
+                # タイムスタンプ解析エラーの場合はスキップ（デバッグ用にエラーを出力）
+                print(f"Timestamp parsing error: {e} for data_time: {data_time}")
                 continue
         
         return filtered_data
