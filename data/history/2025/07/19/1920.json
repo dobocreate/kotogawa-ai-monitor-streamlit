@@ -1,47 +1,43 @@
 {
-  "timestamp": "2025-07-20T07:24:13.062052+09:00",
-  "data_time": "2025-07-20T07:10:00+09:00",
+  "timestamp": "2025-07-19T19:26:42.756991+09:00",
+  "data_time": "2025-07-19T19:20:00+09:00",
   "dam": {
-    "water_level": 37.32,
-    "storage_rate": 92.5,
-    "inflow": 6.21,
+    "water_level": 37.3,
+    "storage_rate": 92.3,
+    "inflow": 6.12,
     "outflow": 4.49,
     "storage_change": null
   },
   "river": {
-    "water_level": 2.75,
+    "water_level": 2.76,
     "level_change": 0.0,
     "status": "正常"
   },
   "rainfall": {
-    "hourly": 0,
+    "hourly": null,
     "cumulative": 0,
-    "change": 0
+    "change": null
   },
   "weather": {
     "today": {
-      "weather_code": "111",
-      "weather_text": "晴れ　夕方　から　くもり　所により　昼過ぎ　から　夜のはじめ頃　雨",
-      "temp_max": 33,
-      "temp_min": 33,
+      "weather_code": "211",
+      "weather_text": "くもり　夜遅く　晴れ　所により　夜のはじめ頃　まで　雨　で　雷を伴う",
+      "temp_max": null,
+      "temp_min": null,
       "precipitation_probability": [
-        10,
-        20,
-        10
+        30
       ],
       "precipitation_times": [
-        "06時",
-        "12時",
         "18時"
       ]
     },
     "tomorrow": {
-      "weather_code": "100",
-      "weather_text": "晴れ　夕方　から　夜のはじめ頃　くもり　所により　昼過ぎ　から　夜のはじめ頃　雨　で　雷を伴う",
-      "temp_max": 33,
-      "temp_min": 27,
+      "weather_code": "101",
+      "weather_text": "晴れ　時々　くもり　所により　昼過ぎ　から　夜のはじめ頃　雨",
+      "temp_max": null,
+      "temp_min": null,
       "precipitation_probability": [
-        0,
+        10,
         10,
         20,
         10
@@ -56,8 +52,8 @@
     "day_after_tomorrow": {
       "weather_code": "101",
       "weather_text": "晴れ時々くもり",
-      "temp_max": 33,
-      "temp_min": 26,
+      "temp_max": 32,
+      "temp_min": 27,
       "precipitation_probability": [
         20
       ],
@@ -65,7 +61,7 @@
         "日中"
       ]
     },
-    "update_time": "2025-07-20T05:00:00+09:00",
+    "update_time": "2025-07-19T17:00:00+09:00",
     "weekly_forecast": [
       {
         "date": "2025-07-20",
@@ -135,36 +131,10 @@
   "precipitation_intensity": {
     "observation": [
       {
-        "datetime": "2025-07-20T07:01:05+09:00",
-        "intensity": 0.0
+        "datetime": "2025-07-19T19:02:00+09:00",
+        "intensity": 3.13
       }
     ],
-    "forecast": [
-      {
-        "datetime": "2025-07-20T07:02:05+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-20T07:03:05+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-20T07:04:05+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-20T07:05:05+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-20T08:00:05+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-20T08:01:05+09:00",
-        "intensity": 0.0
-      }
-    ],
-    "update_time": "2025-07-20T07:24:13.061885+09:00"
+    "update_time": "2025-07-19T19:26:42.756804+09:00"
   }
 }

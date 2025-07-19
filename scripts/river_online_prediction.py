@@ -116,11 +116,11 @@ class RiverOnlinePredictor:
         Returns:
             features: 特徴量辞書
         """
-        if len(history_data) < 144:  # 24時間分のデータが必要
+        if len(history_data) < 72:  # 12時間分のデータが必要
             return None
             
-        # 最新144個のデータを使用（24時間分）
-        recent_data = history_data[-144:]
+        # 最新72個のデータを使用（12時間分）
+        recent_data = history_data[-72:]
         
         # データ抽出
         features = {}
@@ -160,8 +160,8 @@ class RiverOnlinePredictor:
         features['level_std_6h'] = np.std(water_levels[-36:]) if len(water_levels) >= 36 else 0
         features['level_max_6h'] = np.max(water_levels[-36:]) if len(water_levels) >= 36 else water_levels[-1]
         
-        features['level_mean_24h'] = np.mean(water_levels) if len(water_levels) >= 144 else water_levels[-1]
-        features['level_std_24h'] = np.std(water_levels) if len(water_levels) >= 144 else 0
+        features['level_mean_12h'] = np.mean(water_levels) if len(water_levels) >= 72 else water_levels[-1]
+        features['level_std_12h'] = np.std(water_levels) if len(water_levels) >= 72 else 0
         
         # ダム放流量特徴量
         outflows = []
@@ -375,13 +375,13 @@ class RiverOnlinePredictor:
         Args:
             history_data: 履歴データのリスト
         """
-        if len(history_data) < 144 + self.prediction_horizon:  # 24時間分のデータが必要
+        if len(history_data) < 72 + self.prediction_horizon:  # 12時間分のデータが必要
             return
             
         # 学習データの準備
-        for i in range(len(history_data) - 144 - self.prediction_horizon):
-            # 訓練用の履歴データ（24時間分）
-            train_history = history_data[i:i+144]
+        for i in range(len(history_data) - 72 - self.prediction_horizon):
+            # 訓練用の履歴データ（12時間分）
+            train_history = history_data[i:i+72]
             
             # 各予測ステップで学習
             for step in range(1, self.prediction_horizon + 1):
@@ -391,7 +391,7 @@ class RiverOnlinePredictor:
                     continue
                     
                 # 実際の水位（target）
-                target_idx = i + 144 + step - 1
+                target_idx = i + 72 + step - 1
                 if target_idx < len(history_data):
                     target_data = history_data[target_idx]
                     if 'river' in target_data and target_data['river'].get('water_level') is not None:
@@ -480,9 +480,9 @@ class RiverOnlinePredictor:
             'horizon_hours': 3,
             'interval_minutes': 10,
             'features': [
-                '水位（現在値、遅延値、変化率、24時間統計）',
+                '水位（現在値、遅延値、変化率、12時間統計）',
                 'ダム放流量（時間遅延30-120分、累積効果、開始/停止検出）',
-                '雨量（累積1-24時間、降雨イベント検出、強度変化）',
+                '雨量（累積1-12時間、降雨イベント検出、強度変化）',
                 '時間的特徴（時刻の周期性）'
             ],
             'learning': {
@@ -491,7 +491,7 @@ class RiverOnlinePredictor:
                 'performance': performance
             },
             'improvements': [
-                '24時間分のデータを活用',
+                '12時間分のデータを活用',
                 '降雨イベント特徴量を追加',
                 '放流量の時間遅延効果をモデル化',
                 'アンサンブル学習による精度向上'

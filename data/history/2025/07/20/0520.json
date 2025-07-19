@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-07-20T07:24:13.062052+09:00",
-  "data_time": "2025-07-20T07:10:00+09:00",
+  "timestamp": "2025-07-20T05:27:18.348515+09:00",
+  "data_time": "2025-07-20T05:20:00+09:00",
   "dam": {
     "water_level": 37.32,
     "storage_rate": 92.5,
     "inflow": 6.21,
-    "outflow": 4.49,
+    "outflow": 4.48,
     "storage_change": null
   },
   "river": {
@@ -135,36 +135,10 @@
   "precipitation_intensity": {
     "observation": [
       {
-        "datetime": "2025-07-20T07:01:05+09:00",
+        "datetime": "2025-07-20T05:02:00+09:00",
         "intensity": 0.0
       }
     ],
-    "forecast": [
-      {
-        "datetime": "2025-07-20T07:02:05+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-20T07:03:05+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-20T07:04:05+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-20T07:05:05+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-20T08:00:05+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-20T08:01:05+09:00",
-        "intensity": 0.0
-      }
-    ],
-    "update_time": "2025-07-20T07:24:13.061885+09:00"
+    "update_time": "2025-07-20T05:27:18.348355+09:00"
   }
 }
