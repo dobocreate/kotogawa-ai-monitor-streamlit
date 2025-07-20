@@ -1456,40 +1456,11 @@ class KotogawaMonitor:
             # AI予測の追加
             if AI_PREDICTION_AVAILABLE:
                 try:
-                    # 予測器の初期化（セッション状態で管理）
-                    # 選択されたモデルに基づいて予測器を初期化
-                    selected_model = st.session_state.get('prediction_model', 'エキスパートルール予測')
-                    
-                    # モデルが変更された場合は再初期化
-                    if ('predictor' not in st.session_state or 
-                        st.session_state.get('last_prediction_model') != selected_model):
-                        
-                        if selected_model == "Riverオンライン学習予測" and RIVER_LEARNING_AVAILABLE:
-                            # River予測モデルを取得
-                            try:
-                                if get_river_predictor:
-                                    predictor_instance = get_river_predictor()
-                                    if predictor_instance:
-                                        st.session_state.predictor = predictor_instance
-                                        # ストリーミングモデルの場合の学習
-                                        if hasattr(predictor_instance, 'learn_one') and len(history_data) >= 18:
-                                            for i in range(min(10, len(history_data) - 18)):  # 最初の10個で学習
-                                                current_data = history_data[i]
-                                                future_data = history_data[i+1:i+19]
-                                                predictor_instance.learn_one(current_data, future_data)
-                                    else:
-                                        raise Exception("River予測モデルの作成に失敗")
-                                else:
-                                    raise Exception("get_river_predictorが利用できません")
-                            except Exception as e:
-                                # フォールバック - エキスパートルール予測を使用
-                                st.session_state.predictor = AdvancedRiverLevelPredictor()
-                                error_msg = f"River予測の初期化エラー: {str(e)}"
-                                st.session_state['ai_prediction_error'] = error_msg
-                        else:
-                            st.session_state.predictor = AdvancedRiverLevelPredictor()
-                        
-                        st.session_state.last_prediction_model = selected_model
+                    # 予測器はメイン関数で既に初期化済み
+                    if 'predictor' not in st.session_state:
+                        # フォールバック（念のため）
+                        st.session_state.predictor = AdvancedRiverLevelPredictor()
+                        st.session_state.last_prediction_model = "エキスパートルール予測"
                     
                     predictor = st.session_state.predictor
                     
@@ -2985,6 +2956,43 @@ def main():
         alerts = monitor.check_alert_status(latest_data, thresholds)
     else:
         alerts = {'overall': 'データなし', 'river': 'データなし', 'dam': 'データなし', 'rainfall': 'データなし'}
+    
+    # AI予測モデルの初期化（データ読み込み後、表示前に実行）
+    if AI_PREDICTION_AVAILABLE and history_data:
+        selected_model = st.session_state.get('prediction_model', 'エキスパートルール予測')
+        
+        # モデルが変更された場合またはモデルが存在しない場合は初期化
+        if ('predictor' not in st.session_state or 
+            st.session_state.get('last_prediction_model') != selected_model):
+            
+            try:
+                if selected_model == "Riverオンライン学習予測" and RIVER_LEARNING_AVAILABLE:
+                    # River予測モデルを取得
+                    if get_river_predictor:
+                        predictor_instance = get_river_predictor()
+                        if predictor_instance:
+                            st.session_state.predictor = predictor_instance
+                            st.session_state.last_prediction_model = selected_model
+                            # ストリーミングモデルの場合の学習
+                            if hasattr(predictor_instance, 'learn_one') and len(history_data) >= 18:
+                                for i in range(min(10, len(history_data) - 18)):  # 最初の10個で学習
+                                    current_data = history_data[i]
+                                    future_data = history_data[i+1:i+19]
+                                    predictor_instance.learn_one(current_data, future_data)
+                        else:
+                            raise Exception("River予測モデルの作成に失敗")
+                    else:
+                        raise Exception("get_river_predictorが利用できません")
+                else:
+                    # エキスパートルール予測を使用
+                    st.session_state.predictor = AdvancedRiverLevelPredictor()
+                    st.session_state.last_prediction_model = selected_model
+            except Exception as e:
+                # エラー時はフォールバック
+                st.session_state.predictor = AdvancedRiverLevelPredictor()
+                st.session_state.last_prediction_model = "エキスパートルール予測"
+                if 'ai_prediction_error' not in st.session_state:
+                    st.session_state.ai_prediction_error = str(e)
     
     # デモモード表示
     if demo_mode:
