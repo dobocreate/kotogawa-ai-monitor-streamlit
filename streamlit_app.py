@@ -48,13 +48,15 @@ except ImportError:
 try:
     from scripts.river_streaming_prediction import RiverStreamingPredictor
     RIVER_LEARNING_AVAILABLE = True
+    RIVER_STREAMING_AVAILABLE = True
 except ImportError:
+    RIVER_STREAMING_AVAILABLE = False
     try:
         from scripts.river_online_prediction import RiverOnlinePredictor
         RIVER_LEARNING_AVAILABLE = True
     except ImportError:
         RIVER_LEARNING_AVAILABLE = False
-    print("Riverオンライン学習が利用できません。")
+        print("Riverオンライン学習が利用できません。")
 
 # 予測評価モジュールのインポート
 try:
@@ -1465,11 +1467,11 @@ class KotogawaMonitor:
                                         current_data = history_data[i]
                                         future_data = history_data[i+1:i+19]
                                         st.session_state.predictor.learn_one(current_data, future_data)
-                            except:
-                                # フォールバック
-                                st.session_state.predictor = RiverOnlinePredictor()
-                                if len(history_data) >= 50:
-                                    st.session_state.predictor.learn(history_data)
+                            except Exception as e:
+                                # フォールバック - エキスパートルール予測を使用
+                                st.session_state.predictor = AdvancedRiverLevelPredictor()
+                                error_msg = f"Riverストリーミング予測の初期化に失敗しました: {str(e)}"
+                                st.session_state['ai_prediction_error'] = error_msg
                         else:
                             st.session_state.predictor = AdvancedRiverLevelPredictor()
                         
