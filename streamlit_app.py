@@ -2694,6 +2694,51 @@ def main():
             help="チェックを入れるとグラフの拡大・縮小・移動が可能になります"
         )
         
+        
+        # 週間天気表示設定
+        show_weekly_weather = st.checkbox(
+            "週間天気を表示",
+            value=True,
+            help="チェックを外すと週間天気予報を非表示にします"
+        )
+        
+        # デモモード設定
+        demo_mode = st.checkbox(
+            "デモモード",
+            value=False,
+            help="過去の河川・ダムデータ（2023/6/25-7/2）を表示します"
+        )
+        
+        # デモモード時の日時選択
+        demo_datetime = None
+        if demo_mode:
+            st.markdown("**デモモード日時設定**")
+            col_date, col_time = st.columns(2)
+            
+            with col_date:
+                demo_date = st.date_input(
+                    "日付",
+                    value=datetime(2023, 6, 30).date(),
+                    min_value=datetime(2023, 6, 25).date(),
+                    max_value=datetime(2023, 7, 1).date(),
+                    help="2023/6/25〜7/1の範囲で選択",
+                    key="demo_date_input"  # 一意のキーを追加
+                )
+            
+            with col_time:
+                demo_time = st.time_input(
+                    "時刻",
+                    value=datetime(2023, 6, 30, 12, 0).time(),
+                    help="表示する時刻を選択",
+                    key="demo_time_input"  # 一意のキーを追加
+                )
+            
+            # 日時を結合
+            demo_datetime = datetime.combine(demo_date, demo_time)
+            demo_datetime = demo_datetime.replace(tzinfo=ZoneInfo('Asia/Tokyo'))
+    
+    # AI予測設定
+    with st.sidebar.expander("AI予測設定", expanded=False):
         # AI予測モデル選択
         if AI_PREDICTION_AVAILABLE:
             st.markdown("**AI予測設定**")
@@ -2788,48 +2833,8 @@ def main():
                         
             # 予測精度評価ページへのリンク
             st.markdown("[📈 予測精度の詳細を見る](/予測精度評価)")
-        
-        # 週間天気表示設定
-        show_weekly_weather = st.checkbox(
-            "週間天気を表示",
-            value=True,
-            help="チェックを外すと週間天気予報を非表示にします"
-        )
-        
-        # デモモード設定
-        demo_mode = st.checkbox(
-            "デモモード",
-            value=False,
-            help="過去の河川・ダムデータ（2023/6/25-7/2）を表示します"
-        )
-        
-        # デモモード時の日時選択
-        demo_datetime = None
-        if demo_mode:
-            st.markdown("**デモモード日時設定**")
-            col_date, col_time = st.columns(2)
-            
-            with col_date:
-                demo_date = st.date_input(
-                    "日付",
-                    value=datetime(2023, 6, 30).date(),
-                    min_value=datetime(2023, 6, 25).date(),
-                    max_value=datetime(2023, 7, 1).date(),
-                    help="2023/6/25〜7/1の範囲で選択",
-                    key="demo_date_input"  # 一意のキーを追加
-                )
-            
-            with col_time:
-                demo_time = st.time_input(
-                    "時刻",
-                    value=datetime(2023, 6, 30, 12, 0).time(),
-                    help="表示する時刻を選択",
-                    key="demo_time_input"  # 一意のキーを追加
-                )
-            
-            # 日時を結合
-            demo_datetime = datetime.combine(demo_date, demo_time)
-            demo_datetime = demo_datetime.replace(tzinfo=ZoneInfo('Asia/Tokyo'))
+        else:
+            st.info("AI予測機能は利用できません")
     
     # アラート閾値設定
     with st.sidebar.expander("アラート設定", expanded=False):
