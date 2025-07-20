@@ -46,10 +46,14 @@ except ImportError:
 
 # Riverオンライン学習モジュールのインポート
 try:
-    from scripts.river_online_prediction import RiverOnlinePredictor
+    from scripts.river_streaming_prediction import RiverStreamingPredictor
     RIVER_LEARNING_AVAILABLE = True
 except ImportError:
-    RIVER_LEARNING_AVAILABLE = False
+    try:
+        from scripts.river_online_prediction import RiverOnlinePredictor
+        RIVER_LEARNING_AVAILABLE = True
+    except ImportError:
+        RIVER_LEARNING_AVAILABLE = False
     print("Riverオンライン学習が利用できません。")
 
 # 予測評価モジュールのインポート
@@ -1452,10 +1456,20 @@ class KotogawaMonitor:
                         st.session_state.get('last_prediction_model') != selected_model):
                         
                         if selected_model == "Riverオンライン学習予測" and RIVER_LEARNING_AVAILABLE:
-                            st.session_state.predictor = RiverOnlinePredictor()
-                            # 過去データがあれば学習
-                            if len(history_data) >= 50:
-                                st.session_state.predictor.learn(history_data)
+                            # 新しいストリーミングモデルを試す
+                            try:
+                                st.session_state.predictor = RiverStreamingPredictor()
+                                # 過去データからストリーミング学習
+                                if len(history_data) >= 18:
+                                    for i in range(len(history_data) - 18):
+                                        current_data = history_data[i]
+                                        future_data = history_data[i+1:i+19]
+                                        st.session_state.predictor.learn_one(current_data, future_data)
+                            except:
+                                # フォールバック
+                                st.session_state.predictor = RiverOnlinePredictor()
+                                if len(history_data) >= 50:
+                                    st.session_state.predictor.learn(history_data)
                         else:
                             st.session_state.predictor = AdvancedRiverLevelPredictor()
                         
@@ -1465,11 +1479,21 @@ class KotogawaMonitor:
                     
                     # 予測実行（履歴データが十分にある場合）
                     if len(history_data) >= 18:  # 3時間分のデータ
-                        predictions = predictor.predict(history_data)
+                        # ストリーミングモデルの場合は最新データのみ使用
+                        if selected_model == "Riverオンライン学習予測" and hasattr(predictor, 'predict_one'):
+                            # ストリーミング予測
+                            latest_data = history_data[-1] if history_data else None
+                            if latest_data:
+                                predictions = predictor.predict_one(latest_data)
+                            else:
+                                predictions = None
+                        else:
+                            # 従来の予測
+                            predictions = predictor.predict(history_data)
                         
-                        # River予測でデータ不足の場合のエラーを追加
+                        # River予測でエラーの場合
                         if predictions is None and selected_model == "Riverオンライン学習予測":
-                            error_msg = f"Riverオンライン学習予測には12時間分（72サンプル）のデータが必要です。現在のデータ数: {len(history_data)}サンプル"
+                            error_msg = f"Riverオンライン学習予測でエラーが発生しました。"
                             st.session_state['ai_prediction_error'] = error_msg
                         
                         if predictions:
