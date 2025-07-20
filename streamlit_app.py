@@ -44,19 +44,15 @@ except ImportError:
             AI_PREDICTION_AVAILABLE = False
             print("エキスパートルール予測が利用できません。")
 
-# Riverオンライン学習モジュールのインポート
+# Riverストリーミング予測モジュールのインポート
 try:
     from scripts.river_streaming_prediction import RiverStreamingPredictor
     RIVER_LEARNING_AVAILABLE = True
     RIVER_STREAMING_AVAILABLE = True
 except ImportError:
     RIVER_STREAMING_AVAILABLE = False
-    try:
-        from scripts.river_online_prediction import RiverOnlinePredictor
-        RIVER_LEARNING_AVAILABLE = True
-    except ImportError:
-        RIVER_LEARNING_AVAILABLE = False
-        print("Riverオンライン学習が利用できません。")
+    RIVER_LEARNING_AVAILABLE = False
+    print("Riverストリーミング予測が利用できません。")
 
 # River import helperのインポート
 get_river_predictor = None
@@ -1467,7 +1463,7 @@ class KotogawaMonitor:
                     # 予測実行（履歴データが十分にある場合）
                     if len(history_data) >= 18:  # 3時間分のデータ
                         # ストリーミングモデルの場合は最新データのみ使用
-                        if selected_model == "Riverオンライン学習予測" and hasattr(predictor, 'predict_one'):
+                        if selected_model == "Riverストリーミング予測" and hasattr(predictor, 'predict_one'):
                             # ストリーミング予測
                             latest_data = history_data[-1] if history_data else None
                             if latest_data:
@@ -1483,8 +1479,8 @@ class KotogawaMonitor:
                             st.session_state['prediction_method_used'] = 'predict (batch)'
                         
                         # River予測でエラーの場合
-                        if predictions is None and selected_model == "Riverオンライン学習予測":
-                            error_msg = f"Riverオンライン学習予測でエラーが発生しました。"
+                        if predictions is None and selected_model == "Riverストリーミング予測":
+                            error_msg = f"Riverストリーミング予測でエラーが発生しました。"
                             st.session_state['ai_prediction_error'] = error_msg
                         
                         if predictions:
@@ -2722,7 +2718,7 @@ def main():
             st.markdown("**AI予測設定**")
             prediction_model = st.radio(
                 "予測モデル",
-                ["エキスパートルール予測", "Riverオンライン学習予測"],
+                ["エキスパートルール予測", "Riverストリーミング予測"],
                 index=0,
                 help="予測モデルを選択してください"
             )
@@ -2781,7 +2777,7 @@ def main():
                 actual_model_name = type(predictor).__name__
                 
                 # 期待されるモデルと実際のモデルを比較
-                expected_model = "RiverStreamingPredictor" if prediction_model == "Riverオンライン学習予測" else "AdvancedRiverLevelPredictor"
+                expected_model = "RiverStreamingPredictor" if prediction_model == "Riverストリーミング予測" else "AdvancedRiverLevelPredictor"
                 
                 if actual_model_name == expected_model:
                     st.success(f"✅ 実行中: {actual_model_name}")
@@ -2843,7 +2839,7 @@ def main():
             
             with col2:
                 # Riverモデルの場合は学習データもクリア可能
-                if prediction_model == "Riverオンライン学習予測":
+                if prediction_model == "Riverストリーミング予測":
                     if st.button("🗑️ 学習データをクリア", type="secondary", use_container_width=True):
                         try:
                             # モデルファイルを削除
@@ -2966,7 +2962,7 @@ def main():
             st.session_state.get('last_prediction_model') != selected_model):
             
             try:
-                if selected_model == "Riverオンライン学習予測" and RIVER_LEARNING_AVAILABLE:
+                if selected_model == "Riverストリーミング予測" and RIVER_LEARNING_AVAILABLE:
                     # River予測モデルを取得
                     if get_river_predictor:
                         predictor_instance = get_river_predictor()

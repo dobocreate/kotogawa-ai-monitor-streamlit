@@ -19,7 +19,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 try:
     from scripts.prediction_evaluator import PredictionEvaluator
     from scripts.advanced_prediction import AdvancedRiverLevelPredictor
-    from scripts.river_online_prediction import RiverOnlinePredictor
+    from scripts.river_streaming_prediction import RiverStreamingPredictor
     from scripts.collect_data import DataCollector
     MODULES_AVAILABLE = True
 except ImportError:
@@ -53,7 +53,7 @@ def run_backtest(evaluator: PredictionEvaluator, history_data: list,
     
     # 予測器の初期化
     expert_predictor = AdvancedRiverLevelPredictor()
-    river_predictor = RiverOnlinePredictor()
+    river_predictor = RiverStreamingPredictor()
     
     # テスト期間のデータを抽出
     test_data = []

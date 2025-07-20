@@ -23,13 +23,7 @@ try:
 except ImportError:
     STREAMING_AVAILABLE = False
 
-try:
-    from scripts.river_online_prediction import RiverOnlinePredictor
-    ONLINE_AVAILABLE = True
-except ImportError:
-    ONLINE_AVAILABLE = False
-
-MODELS_AVAILABLE = EXPERT_AVAILABLE or STREAMING_AVAILABLE or ONLINE_AVAILABLE
+MODELS_AVAILABLE = EXPERT_AVAILABLE or STREAMING_AVAILABLE
 
 # ページ設定
 st.set_page_config(
@@ -44,14 +38,13 @@ def main():
     st.markdown("厚東川水位予測システムで使用される2つのAIモデルについて詳しく説明します。")
     
     # タブで2つのモデルを切り替え
-    tab1, tab2, tab3 = st.tabs(["エキスパートルール予測", "Riverオンライン学習予測", "モデル比較"])
+    tab1, tab2, tab3 = st.tabs(["エキスパートルール予測", "Riverストリーミング予測", "モデル比較"])
     
     # 現在の利用可能状況を表示
     with st.sidebar:
         st.markdown("### 📊 モデル利用可能状況")
         st.markdown(f"エキスパートルール: {'✅' if EXPERT_AVAILABLE else '❌'}")
-        st.markdown(f"Riverストリーミング（新版）: {'✅' if STREAMING_AVAILABLE else '❌'}")
-        st.markdown(f"Riverオンライン（従来版）: {'✅' if ONLINE_AVAILABLE else '❌'}")
+        st.markdown(f"Riverストリーミング予測: {'✅' if STREAMING_AVAILABLE else '❌'}")
         
         if STREAMING_AVAILABLE:
             st.success("✅ Riverストリーミング予測が利用可能です")
@@ -61,7 +54,7 @@ def main():
         show_expert_rule_explanation()
     
     with tab2:
-        show_river_online_explanation()
+        show_river_streaming_explanation()
     
     with tab3:
         show_model_comparison()
@@ -174,43 +167,9 @@ def show_river_online_explanation():
     - **Riverオンライン学習（従来版）**: バッチ処理と多様な特徴量
     """)
     
-    # 2つのRiverモデルの比較
-    with st.expander("🆚 2つのRiverモデルの違い", expanded=True):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.info("**Riverストリーミング予測（新版）**")
-            st.markdown("""
-            **特徴:**
-            - ✅ 動的遅延推定（放流量に応じて変化）
-            - ✅ predict_oneメソッド（1件ずつ処理）
-            - ✅ River 0.21.0完全対応
-            - ✅ シンプルな特徴量（リアルタイム性重視）
-            - ✅ メモリ効率が高い
-            
-            **使用モデル:**
-            - HoeffdingAdaptiveTreeRegressor
-            - LinearRegressor
-            - BaggingRegressor
-            """)
-        
-        with col2:
-            st.warning("**Riverオンライン学習（従来版）**")
-            st.markdown("""
-            **特徴:**
-            - ❌ 固定遅延時間（40分）
-            - ❌ predictメソッド（バッチ処理）
-            - ⚠️ River 0.21.0部分対応
-            - ✅ 豊富な特徴量（統計量含む）
-            - ❌ メモリ使用量が多い
-            
-            **使用モデル:**
-            - SGDRegressor（18個の独立モデル）
-            - StandardScaler
-            """)
     
     # ストリーミング予測の特徴
-    with st.expander("🎯 Riverストリーミング予測の特徴", expanded=True):
+    with st.expander("🎯 主な特徴", expanded=True):
         col1, col2 = st.columns(2)
         
         with col1:
@@ -248,46 +207,9 @@ def show_river_online_explanation():
             - 各モデルの強みを組み合わせ
             """)
     
-    # 従来版の特徴
-    with st.expander("📋 Riverオンライン学習（従来版）の特徴", expanded=False):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("""
-            **マルチステップ予測**
-            - 18個の独立したSGDRegressor
-            - 各ステップ（10分間隔）専用モデル
-            - 3時間先までの詳細予測
-            - ステップごとに最適化
-            """)
-            
-            st.markdown("""
-            **バッチ処理方式**
-            - predictメソッドでまとめて予測
-            - 複数データを一度に処理
-            - 統計量の計算が必要
-            - メモリ使用量が多い
-            """)
-        
-        with col2:
-            st.markdown("""
-            **豊富な特徴量**
-            - 水位：遅延値（1, 3, 6ステップ前）
-            - 統計量：平均、標準偏差、最大、最小
-            - 変化率：10分、30分、1時間
-            - 時間特徴：sin/cos変換
-            """)
-            
-            st.markdown("""
-            **従来の学習方式**
-            - SGD（確率的勾配降下法）
-            - L2正則化
-            - StandardScalerで正規化
-            - 固定遅延時間（40分）
-            """)
     
-    # ストリーミング予測の学習プロセス
-    with st.expander("📚 ストリーミング予測の学習プロセス", expanded=False):
+    # 学習プロセス
+    with st.expander("📚 学習プロセス", expanded=False):
         st.markdown("""
         ### ストリーミング処理の流れ
         ```python
@@ -322,72 +244,29 @@ def show_river_online_explanation():
         - システム再起動後も学習を継続
         """)
     
-    # 特徴量の比較
-    with st.expander("📊 使用される特徴量の比較", expanded=False):
-        tab_stream, tab_online = st.tabs(["ストリーミング予測", "従来版オンライン学習"])
+    # 使用される特徴量
+    with st.expander("📊 使用される特徴量", expanded=False):
+        st.markdown("### シンプルで効果的な特徴量設計")
+        col1, col2 = st.columns(2)
         
-        with tab_stream:
-            st.markdown("### ストリーミングモデルの特徴量（シンプル）")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("""
-                **基本情報（現在値のみ）**
-                - water_level: 現在水位
-                - dam_outflow: ダム放流量
-                - dam_inflow: ダム流入量
-                - storage_rate: 貯水率
-                - rainfall: 降雨量
-                """)
-            
-            with col2:
-                st.markdown("""
-                **動的特徴**
-                - estimated_delay: 推定遅延時間
-                - level_change_rate: 水位変化率
-                - hour: 時刻
-                - is_night: 夜間フラグ
-                """)
+        with col1:
+            st.markdown("""
+            **基本情報（現在値のみ）**
+            - water_level: 現在水位
+            - dam_outflow: ダム放流量
+            - dam_inflow: ダム流入量
+            - storage_rate: 貯水率
+            - rainfall: 降雨量
+            """)
         
-        with tab_online:
-            st.markdown("### 従来モデルの特徴量（豊富）")
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.markdown("""
-                **水位関連（多数）**
-                - current_level
-                - level_lag_1, 3, 6
-                - level_change_10min
-                - level_change_30min
-                - level_change_1h
-                - level_mean_1h
-                - level_std_1h
-                - level_max_1h
-                - level_min_1h
-                """)
-            
-            with col2:
-                st.markdown("""
-                **放流量関連**
-                - current_outflow
-                - outflow_lag_4
-                - outflow_mean_1h
-                - outflow_change_1h
-                - outflow_max_1h
-                """)
-            
-            with col3:
-                st.markdown("""
-                **その他**
-                - rainfall_current
-                - rainfall_sum_3h
-                - rainfall_max_3h
-                - hour_sin
-                - hour_cos
-                - prediction_step
-                - prediction_minutes
-                """)
+        with col2:
+            st.markdown("""
+            **動的特徴**
+            - estimated_delay: 推定遅延時間
+            - level_change_rate: 水位変化率
+            - hour: 時刻
+            - is_night: 夜間フラグ
+            """)
     
     # 長所と短所
     col1, col2 = st.columns(2)
@@ -433,7 +312,7 @@ def show_model_comparison():
             "⭐⭐⭐⭐⭐ 少ない",
             "⭐⭐⭐⭐ 高い"
         ],
-        "Riverオンライン学習": [
+        "Riverストリーミング予測": [
             "機械学習（アンサンブル）",
             "⭐⭐ 低い",
             "⭐⭐⭐⭐⭐ 向上する",
@@ -465,7 +344,7 @@ def show_model_comparison():
         """)
     
     with col2:
-        st.info("**Riverオンライン学習予測を選ぶべき場合**")
+        st.info("**Riverストリーミング予測を選ぶべき場合**")
         st.markdown("""
         - 十分な過去データが蓄積されている
         - 地域特有のパターンを学習させたい
@@ -480,7 +359,7 @@ def show_model_comparison():
     **両モデルの併用をお勧めします**
     
     - エキスパートルール予測を主として使用し、安定した予測を確保
-    - Riverオンライン学習予測を補助的に使用し、学習の進捗を確認
+    - Riverストリーミング予測を補助的に使用し、学習の進捗を確認
     - 両モデルの予測が大きく異なる場合は、慎重な判断が必要
     - 時間の経過とともにRiverモデルの信頼性が向上することを期待
     """)
@@ -509,7 +388,7 @@ def show_model_comparison():
         - 潮位の影響モデル化
         - より詳細な雨量予測の統合
         
-        **Riverオンライン学習予測**
+        **Riverストリーミング予測**
         - 深層学習モデルの統合
         - 不確実性の定量化
         - 異常検知機能の追加
