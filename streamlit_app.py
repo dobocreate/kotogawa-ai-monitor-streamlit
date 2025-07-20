@@ -2803,6 +2803,16 @@ def main():
                         model_info = predictor.get_model_info()
                         if 'model_type' in model_info:
                             st.caption(f"アルゴリズム: {model_info['model_type']}")
+                        
+                        # 新しいメトリクス表示（v2モデル用）
+                        if 'mae_10min' in model_info and model_info['mae_10min'] is not None:
+                            st.metric("MAE (10分先)", f"{model_info['mae_10min']:.3f}m")
+                        if 'rmse_10min' in model_info and model_info['rmse_10min'] is not None:
+                            st.metric("RMSE (10分先)", f"{model_info['rmse_10min']:.3f}m")
+                        if 'drift_count' in model_info:
+                            st.metric("ドリフト検出回数", model_info['drift_count'])
+                        if 'drift_rate' in model_info:
+                            st.caption(f"ドリフト率: {model_info['drift_rate']:.2f}%")
                     except:
                         pass
                 

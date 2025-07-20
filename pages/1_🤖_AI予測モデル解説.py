@@ -159,12 +159,13 @@ def show_river_online_explanation():
     st.header("Riverオンライン学習予測")
     
     st.markdown("""
-    Riverオンライン学習予測は、機械学習ライブラリ「River」を使用した適応型予測モデルです。
+    Riverストリーミング予測は、機械学習ライブラリ「River」を使用した適応型予測モデルです。
     データから継続的に学習し、時間とともに予測精度を向上させます。
     
-    現在、2つのバージョンが利用可能です：
-    - **Riverストリーミング予測（新版、推奨）**: 動的遅延推定と真のストリーミング処理
-    - **Riverオンライン学習（従来版）**: バッチ処理と多様な特徴量
+    **最新バージョン（v2）では仕様書に基づいた以下の機能を実装：**
+    - **ARFRegressor**：適応的ランダムフォレストによる高精度予測
+    - **ADWINドリフト検出**：概念ドリフトを自動検知し、モデルを適応
+    - **MAE/RMSE追跡**：リアルタイムで予測精度を監視
     """)
     
     
@@ -201,10 +202,10 @@ def show_river_online_explanation():
             
             st.markdown("""
             **アンサンブル学習**
-            - HoeffdingAdaptiveTreeRegressor：適応的決定木
-            - LinearRegressor：線形回帰
-            - BaggingRegressor：複数モデルの統合
-            - 各モデルの強みを組み合わせ
+            - ARFRegressor (v2)：適応的ランダムフォレスト
+            - ADWINドリフト検出器内蔵
+            - 概念ドリフトへの自動適応
+            - 高精度予測を実現
             """)
     
     
@@ -239,8 +240,9 @@ def show_river_online_explanation():
         ```
         
         ### モデルの保存
-        - `models/river_streaming_model.pkl`として保存
+        - `models/river_streaming_model_v2.pkl`として保存
         - 学習履歴、遅延推定パラメータも保存
+        - MAE/RMSEメトリクス、ドリフト検出履歴も保存
         - システム再起動後も学習を継続
         """)
     
@@ -370,10 +372,10 @@ def show_model_comparison():
         ### 実装済みの改良点
         
         **Riverストリーミング予測**
-        - ✅ 動的遅延推定の実装
-        - ✅ 真のストリーミング処理（predict_one）
-        - ✅ River 0.21.0完全対応
-        - ✅ アンサンブル学習の実装
+        - ✅ ARFRegressorによる高精度予測
+        - ✅ ADWINドリフト検出器の実装
+        - ✅ MAE/RMSEのリアルタイム追跡
+        - ✅ 仕様書準拠のパイプライン構築
         
         **システム全体**
         - ✅ モデル再初期化機能
