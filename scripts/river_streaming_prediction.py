@@ -299,6 +299,18 @@ class RiverStreamingPredictor:
         
         return predictions
     
+    def predict(self, history_data: List[Dict]) -> Optional[List[Dict]]:
+        """
+        履歴データから予測（互換性のため）
+        最新のデータポイントを使用してストリーミング予測
+        """
+        if not history_data:
+            return None
+        
+        # 最新データを使用
+        latest_data = history_data[-1]
+        return self.predict_one(latest_data)
+    
     def learn_one(self, data: Dict, future_data: Optional[List[Dict]] = None):
         """
         単一データポイントから学習

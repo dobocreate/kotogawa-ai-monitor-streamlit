@@ -1458,19 +1458,26 @@ class KotogawaMonitor:
                         st.session_state.get('last_prediction_model') != selected_model):
                         
                         if selected_model == "Riverオンライン学習予測" and RIVER_LEARNING_AVAILABLE:
-                            # 新しいストリーミングモデルを試す
+                            # River予測モデルを取得
                             try:
-                                st.session_state.predictor = RiverStreamingPredictor()
-                                # 過去データからストリーミング学習
-                                if len(history_data) >= 18:
-                                    for i in range(len(history_data) - 18):
-                                        current_data = history_data[i]
-                                        future_data = history_data[i+1:i+19]
-                                        st.session_state.predictor.learn_one(current_data, future_data)
+                                if get_river_predictor:
+                                    predictor_instance = get_river_predictor()
+                                    if predictor_instance:
+                                        st.session_state.predictor = predictor_instance
+                                        # ストリーミングモデルの場合の学習
+                                        if hasattr(predictor_instance, 'learn_one') and len(history_data) >= 18:
+                                            for i in range(min(10, len(history_data) - 18)):  # 最初の10個で学習
+                                                current_data = history_data[i]
+                                                future_data = history_data[i+1:i+19]
+                                                predictor_instance.learn_one(current_data, future_data)
+                                    else:
+                                        raise Exception("River予測モデルの作成に失敗")
+                                else:
+                                    raise Exception("get_river_predictorが利用できません")
                             except Exception as e:
                                 # フォールバック - エキスパートルール予測を使用
                                 st.session_state.predictor = AdvancedRiverLevelPredictor()
-                                error_msg = f"Riverストリーミング予測の初期化に失敗しました: {str(e)}"
+                                error_msg = f"River予測の初期化エラー: {str(e)}"
                                 st.session_state['ai_prediction_error'] = error_msg
                         else:
                             st.session_state.predictor = AdvancedRiverLevelPredictor()
@@ -2870,28 +2877,6 @@ def main():
             else:
                 st.info("📊 デモデータ表示中")
         
-        # AI予測エラーがある場合は表示
-        if 'ai_prediction_error' in st.session_state:
-            st.error(f"⚠️ AI予測エラー: {st.session_state['ai_prediction_error']}")
-            # エラーをクリア
-            del st.session_state['ai_prediction_error']
-    else:
-        # 通常モードでもAI予測エラーがある場合は表示
-        if 'ai_prediction_error' in st.session_state:
-            st.error(f"⚠️ AI予測エラー: {st.session_state['ai_prediction_error']}")
-            # エラーをクリア
-            del st.session_state['ai_prediction_error']
-    
-    if latest_data:
-        # 状態、更新時間、API取得時間を3列で表示
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            if alerts['overall'] == '正常':
-                st.success("🟢 現在の状況: 正常")
-            elif alerts['overall'] == '危険':
-                st.error("🔴 現在の状況: 危険")
-            elif alerts['overall'] == '警戒':
                 st.warning("🟠 現在の状況: 警戒")
             elif alerts['overall'] == '注意':
                 st.warning("🟡 現在の状況: 注意")
@@ -2941,6 +2926,12 @@ def main():
     
     # データ分析表示
     monitor.create_data_analysis_display(history_data, enable_graph_interaction, display_hours, demo_mode)
+    
+    # グラフ作成後にAI予測エラーがある場合は表示
+    if 'ai_prediction_error' in st.session_state:
+        st.error(f"⚠️ AI予測エラー: {st.session_state['ai_prediction_error']}")
+        # エラーをクリア
+        del st.session_state['ai_prediction_error']
     
     # システム情報（サイドバー）
     with st.sidebar.expander("システム情報", expanded=True):

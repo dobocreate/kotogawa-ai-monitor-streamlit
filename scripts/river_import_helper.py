@@ -7,15 +7,17 @@ RIVER_LEARNING_AVAILABLE = False
 RIVER_MODEL = None
 
 try:
-    from scripts.river_streaming_prediction import RiverStreamingPredictor
+    from .river_streaming_prediction import RiverStreamingPredictor
     RIVER_MODEL = RiverStreamingPredictor
     RIVER_LEARNING_AVAILABLE = True
-except ImportError:
+except ImportError as e:
+    print(f"RiverStreamingPredictorのインポートエラー: {e}")
     try:
-        from scripts.river_online_prediction import RiverOnlinePredictor
+        from .river_online_prediction import RiverOnlinePredictor
         RIVER_MODEL = RiverOnlinePredictor
         RIVER_LEARNING_AVAILABLE = True
-    except ImportError:
+    except ImportError as e2:
+        print(f"RiverOnlinePredictorのインポートエラー: {e2}")
         pass
 
 def get_river_predictor():
