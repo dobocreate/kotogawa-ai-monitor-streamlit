@@ -1460,6 +1460,9 @@ class KotogawaMonitor:
                     
                     predictor = st.session_state.predictor
                     
+                    # 現在選択されているモデルを取得
+                    selected_model = st.session_state.get('prediction_model', 'エキスパートルール予測')
+                    
                     # 予測実行（履歴データが十分にある場合）
                     if len(history_data) >= 18:  # 3時間分のデータ
                         # ストリーミングモデルの場合は最新データのみ使用

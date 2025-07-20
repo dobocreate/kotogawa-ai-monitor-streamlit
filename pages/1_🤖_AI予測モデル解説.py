@@ -154,9 +154,9 @@ def show_expert_rule_explanation():
         - 地域特性の学習ができない
         """)
 
-def show_river_online_explanation():
-    """Riverオンライン学習予測の解説"""
-    st.header("Riverオンライン学習予測")
+def show_river_streaming_explanation():
+    """Riverストリーミング学習予測の解説"""
+    st.header("Riverストリーミング学習予測")
     
     st.markdown("""
     Riverストリーミング予測は、機械学習ライブラリ「River」を使用した適応型予測モデルです。
