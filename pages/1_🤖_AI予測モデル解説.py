@@ -208,7 +208,6 @@ def show_river_online_explanation():
             - SGDRegressor（18個の独立モデル）
             - StandardScaler
             """)
-        """)
     
     # ストリーミング予測の特徴
     with st.expander("🎯 Riverストリーミング予測の特徴", expanded=True):
