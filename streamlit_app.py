@@ -2775,26 +2775,12 @@ def main():
                 # 予測メソッドの確認
                 if hasattr(predictor, 'predict_one'):
                     st.caption("予測方式: ストリーミング（predict_one）")
-                
-                # 実際に使用された予測メソッド
-                if 'prediction_method_used' in st.session_state:
-                    st.caption(f"最終実行: {st.session_state['prediction_method_used']}")
                 elif hasattr(predictor, 'predict'):
-                
-                # 実際に使用された予測メソッド
-                if 'prediction_method_used' in st.session_state:
-                    st.caption(f"最終実行: {st.session_state['prediction_method_used']}")
                     st.caption("予測方式: バッチ（predict）")
                 
                 # 実際に使用された予測メソッド
                 if 'prediction_method_used' in st.session_state:
                     st.caption(f"最終実行: {st.session_state['prediction_method_used']}")
-                
-                # 実際に使用された予測メソッド
-                if 'prediction_method_used' in st.session_state:
-                    st.caption(f"最終実行: {st.session_state['prediction_method_used']}")
-                
-                # 最新のエラー情報
                 if 'ai_prediction_error' in st.session_state:
                     st.error(f"最新エラー: {st.session_state['ai_prediction_error']}")
             else:
