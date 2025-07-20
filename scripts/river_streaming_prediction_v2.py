@@ -41,7 +41,7 @@ class DynamicDelayEstimator:
         self.delay_model = compose.Pipeline(
             pp.StandardScaler(),
             forest.ARFRegressor(
-                n_estimators=10,
+                n_models=10,
                 max_depth=10,
                 drift_detector=drift.ADWIN(delta=0.002),
                 seed=42
@@ -168,7 +168,7 @@ class RiverStreamingPredictor:
             pp.StandardScaler(),
             # ARFRegressor（仕様書準拠）
             forest.ARFRegressor(
-                n_estimators=15,
+                n_models=15,
                 max_depth=15,
                 drift_detector=drift.ADWIN(delta=1e-3),
                 seed=42
@@ -181,7 +181,7 @@ class RiverStreamingPredictor:
             self.models[f'step_{step}'] = compose.Pipeline(
                 pp.StandardScaler(),
                 forest.ARFRegressor(
-                    n_estimators=10,
+                    n_models=10,
                     max_depth=12,
                     drift_detector=drift.ADWIN(delta=1e-3),
                     seed=42 + step
