@@ -58,6 +58,13 @@ except ImportError:
         RIVER_LEARNING_AVAILABLE = False
         print("Riverオンライン学習が利用できません。")
 
+# River import helperのインポート
+get_river_predictor = None
+try:
+    from scripts.river_import_helper import get_river_predictor
+except ImportError:
+    print("River import helperが利用できません。")
+
 # 予測評価モジュールのインポート
 try:
     from scripts.prediction_evaluator import PredictionEvaluator
@@ -2781,6 +2788,21 @@ def main():
             st.markdown("---")
             st.markdown("**📊 モデル動作状態**")
             
+            # システム診断情報
+            with st.expander("🔍 システム診断情報", expanded=False):
+                st.caption("**利用可能なモジュール:**")
+                st.caption(f"• エキスパートルール予測: {'✅' if AI_PREDICTION_AVAILABLE else '❌'}")
+                st.caption(f"• Riverストリーミング予測: {'✅' if RIVER_STREAMING_AVAILABLE else '❌'}")
+                st.caption(f"• Riverオンライン学習: {'✅' if RIVER_LEARNING_AVAILABLE else '❌'}")
+                st.caption(f"• River import helper: {'✅' if get_river_predictor is not None else '❌'}")
+                st.caption(f"• 予測評価機能: {'✅' if EVALUATION_AVAILABLE else '❌'}")
+                
+                if not RIVER_LEARNING_AVAILABLE:
+                    st.caption("**River関連のトラブルシューティング:**")
+                    st.caption("1. river ライブラリがインストールされているか確認")
+                    st.caption("2. scripts/river_import_helper.py が存在するか確認")
+                    st.caption("3. 依存関係のバージョン互換性を確認")
+            
             if 'predictor' in st.session_state:
                 predictor = st.session_state.predictor
                 
@@ -2830,6 +2852,47 @@ def main():
                     st.error(f"最新エラー: {st.session_state['ai_prediction_error']}")
             else:
                 st.warning("モデル未初期化")
+            
+            # モデル再初期化ボタン
+            st.markdown("---")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🔄 モデルを再初期化", type="secondary", use_container_width=True):
+                    # セッション状態から予測モデル関連をクリア
+                    if 'predictor' in st.session_state:
+                        del st.session_state['predictor']
+                    if 'last_prediction_model' in st.session_state:
+                        del st.session_state['last_prediction_model']
+                    if 'ai_prediction_error' in st.session_state:
+                        del st.session_state['ai_prediction_error']
+                    if 'prediction_method_used' in st.session_state:
+                        del st.session_state['prediction_method_used']
+                    st.success("モデルを再初期化しました")
+                    st.rerun()
+            
+            with col2:
+                # Riverモデルの場合は学習データもクリア可能
+                if prediction_model == "Riverオンライン学習予測":
+                    if st.button("🗑️ 学習データをクリア", type="secondary", use_container_width=True):
+                        try:
+                            # モデルファイルを削除
+                            import os
+                            model_files = [
+                                'models/river_streaming_model.pkl',
+                                'models/river_online_model.pkl'
+                            ]
+                            for model_file in model_files:
+                                if os.path.exists(model_file):
+                                    os.remove(model_file)
+                            # セッション状態をクリア
+                            if 'predictor' in st.session_state:
+                                del st.session_state['predictor']
+                            if 'last_prediction_model' in st.session_state:
+                                del st.session_state['last_prediction_model']
+                            st.success("学習データをクリアしました")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"学習データのクリアに失敗: {e}")
                         
             # 予測精度評価ページへのリンク
             st.markdown("[📈 予測精度の詳細を見る](/予測精度評価)")
