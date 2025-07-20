@@ -1494,11 +1494,15 @@ class KotogawaMonitor:
                             latest_data = history_data[-1] if history_data else None
                             if latest_data:
                                 predictions = predictor.predict_one(latest_data)
+                                # デバッグ情報を保存
+                                st.session_state['prediction_method_used'] = 'predict_one (streaming)'
                             else:
                                 predictions = None
                         else:
                             # 従来の予測
                             predictions = predictor.predict(history_data)
+                            # デバッグ情報を保存
+                            st.session_state['prediction_method_used'] = 'predict (batch)'
                         
                         # River予測でエラーの場合
                         if predictions is None and selected_model == "Riverオンライン学習予測":
@@ -2727,6 +2731,74 @@ def main():
                             
                         st.markdown(f"**現在の精度スコア:** <span style='color: {color}'>{score:.1f}/100</span>", unsafe_allow_html=True)
                         st.caption(f"平均絶対誤差: {mae:.3f}m")
+            
+            # モデル動作状態の表示
+            st.markdown("---")
+            st.markdown("**📊 モデル動作状態**")
+            
+            if 'predictor' in st.session_state:
+                predictor = st.session_state.predictor
+                
+                # 実際に動作しているモデルを確認
+                actual_model_name = type(predictor).__name__
+                
+                # 期待されるモデルと実際のモデルを比較
+                expected_model = "RiverStreamingPredictor" if prediction_model == "Riverオンライン学習予測" else "AdvancedRiverLevelPredictor"
+                
+                if actual_model_name == expected_model:
+                    st.success(f"✅ 実行中: {actual_model_name}")
+                else:
+                    st.warning(f"⚠️ 代替モデル実行中: {actual_model_name}")
+                    st.caption(f"期待: {expected_model}")
+                
+                # モデル固有の情報を表示
+                if hasattr(predictor, 'n_samples'):
+                    st.info(f"学習サンプル数: {predictor.n_samples}")
+                elif hasattr(predictor, 'n_learned'):
+                    st.info(f"学習回数: {predictor.n_learned}")
+                
+                # ストリーミングモデルの場合
+                if hasattr(predictor, 'feature_extractor'):
+                    st.caption("ストリーミング処理: ✅ 有効")
+                    if hasattr(predictor, 'delay_estimator'):
+                        st.caption("動的遅延推定: ✅ 有効")
+                
+                # モデルの詳細情報
+                if hasattr(predictor, 'get_model_info'):
+                    try:
+                        model_info = predictor.get_model_info()
+                        if 'model_type' in model_info:
+                            st.caption(f"アルゴリズム: {model_info['model_type']}")
+                    except:
+                        pass
+                
+                # 予測メソッドの確認
+                if hasattr(predictor, 'predict_one'):
+                    st.caption("予測方式: ストリーミング（predict_one）")
+                
+                # 実際に使用された予測メソッド
+                if 'prediction_method_used' in st.session_state:
+                    st.caption(f"最終実行: {st.session_state['prediction_method_used']}")
+                elif hasattr(predictor, 'predict'):
+                
+                # 実際に使用された予測メソッド
+                if 'prediction_method_used' in st.session_state:
+                    st.caption(f"最終実行: {st.session_state['prediction_method_used']}")
+                    st.caption("予測方式: バッチ（predict）")
+                
+                # 実際に使用された予測メソッド
+                if 'prediction_method_used' in st.session_state:
+                    st.caption(f"最終実行: {st.session_state['prediction_method_used']}")
+                
+                # 実際に使用された予測メソッド
+                if 'prediction_method_used' in st.session_state:
+                    st.caption(f"最終実行: {st.session_state['prediction_method_used']}")
+                
+                # 最新のエラー情報
+                if 'ai_prediction_error' in st.session_state:
+                    st.error(f"最新エラー: {st.session_state['ai_prediction_error']}")
+            else:
+                st.warning("モデル未初期化")
                         
             # 予測精度評価ページへのリンク
             st.markdown("[📈 予測精度の詳細を見る](/予測精度評価)")
