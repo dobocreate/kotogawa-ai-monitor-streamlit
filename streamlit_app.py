@@ -2876,7 +2876,17 @@ def main():
                 st.info(f"📊 デモデータ表示中（{time_min_jst}〜{time_max_jst}）")
             else:
                 st.info("📊 デモデータ表示中")
+    
+    if latest_data:
+        # 状態、更新時間、API取得時間を3列で表示
+        col1, col2, col3 = st.columns(3)
         
+        with col1:
+            if alerts['overall'] == '正常':
+                st.success("🟢 現在の状況: 正常")
+            elif alerts['overall'] == '危険':
+                st.error("🔴 現在の状況: 危険")
+            elif alerts['overall'] == '警戒':
                 st.warning("🟠 現在の状況: 警戒")
             elif alerts['overall'] == '注意':
                 st.warning("🟡 現在の状況: 注意")
