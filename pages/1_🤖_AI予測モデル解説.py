@@ -50,11 +50,12 @@ def main():
     with st.sidebar:
         st.markdown("### 📊 モデル利用可能状況")
         st.markdown(f"エキスパートルール: {'✅' if EXPERT_AVAILABLE else '❌'}")
-        st.markdown(f"Riverストリーミング: {'✅' if STREAMING_AVAILABLE else '❌'}")
-        st.markdown(f"River従来版: {'✅' if ONLINE_AVAILABLE else '❌'}")
+        st.markdown(f"Riverストリーミング（新版）: {'✅' if STREAMING_AVAILABLE else '❌'}")
+        st.markdown(f"Riverオンライン（従来版）: {'✅' if ONLINE_AVAILABLE else '❌'}")
         
         if STREAMING_AVAILABLE:
-            st.success("推奨: Riverストリーミング予測が利用可能です")
+            st.success("✅ Riverストリーミング予測が利用可能です")
+            st.caption("動的遅延推定とストリーミング処理で高精度予測")
     
     with tab1:
         show_expert_rule_explanation()
@@ -168,139 +169,226 @@ def show_river_online_explanation():
     Riverオンライン学習予測は、機械学習ライブラリ「River」を使用した適応型予測モデルです。
     データから継続的に学習し、時間とともに予測精度を向上させます。
     
-    **注：** 現在は改良版の「Riverストリーミング予測」モデルが優先的に使用されます。
+    現在、2つのバージョンが利用可能です：
+    - **Riverストリーミング予測（新版、推奨）**: 動的遅延推定と真のストリーミング処理
+    - **Riverオンライン学習（従来版）**: バッチ処理と多様な特徴量
     """)
     
-    # River 0.21.0対応状況
-    with st.expander("🔄 River 0.21.0対応状況", expanded=True):
-        st.markdown("""
-        ### ストリーミング予測モデル（推奨）
-        - **動的遅延推定**: ダム放流量に基づいて水の到達時間を動的に推定
-        - **真のストリーミング処理**: predict_oneメソッドによる1件ずつの予測
-        - **改良されたアンサンブル**: HoeffdingAdaptiveTreeRegressorとLinearRegressorの組み合わせ
-        - **メモリ効率**: 必要最小限のデータのみ保持
+    # 2つのRiverモデルの比較
+    with st.expander("🆚 2つのRiverモデルの違い", expanded=True):
+        col1, col2 = st.columns(2)
         
-        ### 従来のオンライン学習モデル
-        - バッチ予測方式（predictメソッド）
-        - 固定時間遅延
-        - SGDRegressorベース
+        with col1:
+            st.info("**Riverストリーミング予測（新版）**")
+            st.markdown("""
+            **特徴:**
+            - ✅ 動的遅延推定（放流量に応じて変化）
+            - ✅ predict_oneメソッド（1件ずつ処理）
+            - ✅ River 0.21.0完全対応
+            - ✅ シンプルな特徴量（リアルタイム性重視）
+            - ✅ メモリ効率が高い
+            
+            **使用モデル:**
+            - HoeffdingAdaptiveTreeRegressor
+            - LinearRegressor
+            - BaggingRegressor
+            """)
+        
+        with col2:
+            st.warning("**Riverオンライン学習（従来版）**")
+            st.markdown("""
+            **特徴:**
+            - ❌ 固定遅延時間（40分）
+            - ❌ predictメソッド（バッチ処理）
+            - ⚠️ River 0.21.0部分対応
+            - ✅ 豊富な特徴量（統計量含む）
+            - ❌ メモリ使用量が多い
+            
+            **使用モデル:**
+            - SGDRegressor（18個の独立モデル）
+            - StandardScaler
+            """)
         """)
     
-    # 主な特徴
-    with st.expander("🎯 主な特徴", expanded=True):
+    # ストリーミング予測の特徴
+    with st.expander("🎯 Riverストリーミング予測の特徴", expanded=True):
         col1, col2 = st.columns(2)
         
         with col1:
             st.markdown("""
-            **オンライン学習**
-            - 新しいデータが来るたびに継続的に学習
-            - 過去の全データを保持する必要がない
-            - メモリ効率的な学習方式
-            - 時間とともに精度が向上
+            **動的遅延推定**
+            - ダム放流量に応じて水の到達時間を動的に調整
+            - 低流量時（<50m³/s）: 90分遅延
+            - 中流量時（50-100m³/s）: 60分遅延
+            - 高流量時（>100m³/s）: 30分遅延
+            - 実測値に基づいて継続的に改善
             """)
             
             st.markdown("""
+            **真のストリーミング処理**
+            - 1件ずつのデータをリアルタイム処理
+            - predict_oneメソッドで即座に予測
+            - メモリ効率が非常に高い
+            - 大量データでも安定動作
+            """)
+        
+        with col2:
+            st.markdown("""
+            **シンプルな特徴量設計**
+            - 基本特徴量：水位、放流量、雨量など
+            - 時間特徴：時刻、曜日、昼夜フラグ
+            - 変化率：各値の変化速度
+            - 推定遅延時間も特徴量として使用
+            """)
+            
+            st.markdown("""
+            **アンサンブル学習**
+            - HoeffdingAdaptiveTreeRegressor：適応的決定木
+            - LinearRegressor：線形回帰
+            - BaggingRegressor：複数モデルの統合
+            - 各モデルの強みを組み合わせ
+            """)
+    
+    # 従来版の特徴
+    with st.expander("📋 Riverオンライン学習（従来版）の特徴", expanded=False):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("""
             **マルチステップ予測**
-            - 各予測ステップ（10分間隔）に個別のモデル
-            - 18個のモデルで3時間先まで予測
-            - ステップごとに最適化された予測
+            - 18個の独立したSGDRegressor
+            - 各ステップ（10分間隔）専用モデル
+            - 3時間先までの詳細予測
+            - ステップごとに最適化
+            """)
+            
+            st.markdown("""
+            **バッチ処理方式**
+            - predictメソッドでまとめて予測
+            - 複数データを一度に処理
+            - 統計量の計算が必要
+            - メモリ使用量が多い
             """)
         
         with col2:
             st.markdown("""
             **豊富な特徴量**
-            - 水位：現在値、遅延値、変化率、統計量
-            - 放流量：現在値、40分前、平均、変化率
-            - 雨量：現在値、累積値、最大値
-            - 時間：時刻の周期性（sin/cos変換）
+            - 水位：遅延値（1, 3, 6ステップ前）
+            - 統計量：平均、標準偏差、最大、最小
+            - 変化率：10分、30分、1時間
+            - 時間特徴：sin/cos変換
             """)
             
             st.markdown("""
-            **適応的な学習**
-            - アンサンブル学習による予測精度向上
-            - HoeffdingAdaptiveTreeRegressor: 適応的決定木
-            - LinearRegressor: 線形回帰モデル
-            - BaggingRegressor: 複数モデルの統合
+            **従来の学習方式**
+            - SGD（確率的勾配降下法）
+            - L2正則化
+            - StandardScalerで正規化
+            - 固定遅延時間（40分）
             """)
     
-    # 学習プロセス
-    with st.expander("📚 学習プロセス", expanded=False):
+    # ストリーミング予測の学習プロセス
+    with st.expander("📚 ストリーミング予測の学習プロセス", expanded=False):
         st.markdown("""
-        ### 1. ストリーミング処理の流れ
+        ### ストリーミング処理の流れ
         ```python
-        # 新しいデータが到着
-        features = feature_extractor.extract(current_data)
+        # 1. 新しいデータが到着
+        current_data = get_latest_data()
         
-        # 遅延時間を推定
-        delay_minutes = delay_estimator.estimate_delay(outflow)
+        # 2. 特徴量を抽出（シンプル）
+        features = {
+            'water_level': current_data['river']['water_level'],
+            'dam_outflow': current_data['dam']['outflow'],
+            'rainfall': current_data['rainfall'],
+            'hour': datetime.now().hour,
+            # ...その他の特徴量
+        }
         
-        # 予測を実行
+        # 3. 遅延時間を動的に推定
+        delay = delay_estimator.estimate_delay(features['dam_outflow'])
+        features['estimated_delay'] = delay
+        
+        # 4. 予測を実行（1件ずつ）
         prediction = model.predict_one(features)
         
-        # 実測値が利用可能になったら学習
+        # 5. 実測値が利用可能になったら学習
         if actual_value_available:
             model.learn_one(features, actual_value)
-            delay_estimator.update(estimated_delay, actual_delay)
+            delay_estimator.update(delay, actual_delay)
         ```
         
-        ### 2. 動的遅延推定
-        - **低流量時（<50m³/s）**: 90分遅延
-        - **中流量時（50-100m³/s）**: 60分遅延  
-        - **高流量時（>100m³/s）**: 30分遅延
-        - 実測値との比較により継続的に改善
-        
-        ### 3. モデルの保存と復元
-        - models/river_streaming_model.pkl として保存
-        - 学習履歴、遅延推定パラメータも含めて永続化
+        ### モデルの保存
+        - `models/river_streaming_model.pkl`として保存
+        - 学習履歴、遅延推定パラメータも保存
         - システム再起動後も学習を継続
-        
-        ### 4. 性能評価
-        - MAE（平均絶対誤差）
-        - 遅延推定精度
-        - リアルタイム処理性能
         """)
     
-    # 使用される特徴量の詳細
-    with st.expander("📊 使用される特徴量", expanded=False):
-        st.markdown("### ストリーミングモデルの特徴量")
-        col1, col2, col3 = st.columns(3)
+    # 特徴量の比較
+    with st.expander("📊 使用される特徴量の比較", expanded=False):
+        tab_stream, tab_online = st.tabs(["ストリーミング予測", "従来版オンライン学習"])
         
-        with col1:
-            st.markdown("""
-            **基本特徴量**
-            - water_level: 現在水位
-            - dam_outflow: ダム放流量
-            - dam_inflow: ダム流入量
-            - storage_rate: 貯水率
-            - rainfall: 降雨量
-            """)
+        with tab_stream:
+            st.markdown("### ストリーミングモデルの特徴量（シンプル）")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("""
+                **基本情報（現在値のみ）**
+                - water_level: 現在水位
+                - dam_outflow: ダム放流量
+                - dam_inflow: ダム流入量
+                - storage_rate: 貯水率
+                - rainfall: 降雨量
+                """)
+            
+            with col2:
+                st.markdown("""
+                **動的特徴**
+                - estimated_delay: 推定遅延時間
+                - level_change_rate: 水位変化率
+                - hour: 時刻
+                - is_night: 夜間フラグ
+                """)
         
-        with col2:
-            st.markdown("""
-            **時間的特徴**
-            - hour: 時刻（0-23）
-            - is_night: 夜間フラグ
-            - is_weekend: 週末フラグ
-            - estimated_delay: 推定遅延時間
-            """)
-        
-        with col3:
-            st.markdown("""
-            **統計的特徴**
-            - level_change_rate: 水位変化率
-            - outflow_change_rate: 放流量変化率
-            - rainfall_intensity: 降雨強度
-            - 各種移動平均
-            """)
-        
-        st.markdown("### 従来モデルの特徴量")
-        st.markdown("""
-        従来のモデルでは、より多くの遅延特徴量（lag features）を使用：
-        - 水位の1, 3, 6ステップ前の値
-        - 1時間の統計量（平均、標準偏差、最大、最小）
-        - 3時間の累積雨量
-        - 時刻の周期的表現（sin/cos変換）
-        """)
+        with tab_online:
+            st.markdown("### 従来モデルの特徴量（豊富）")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown("""
+                **水位関連（多数）**
+                - current_level
+                - level_lag_1, 3, 6
+                - level_change_10min
+                - level_change_30min
+                - level_change_1h
+                - level_mean_1h
+                - level_std_1h
+                - level_max_1h
+                - level_min_1h
+                """)
+            
+            with col2:
+                st.markdown("""
+                **放流量関連**
+                - current_outflow
+                - outflow_lag_4
+                - outflow_mean_1h
+                - outflow_change_1h
+                - outflow_max_1h
+                """)
+            
+            with col3:
+                st.markdown("""
+                **その他**
+                - rainfall_current
+                - rainfall_sum_3h
+                - rainfall_max_3h
+                - hour_sin
+                - hour_cos
+                - prediction_step
+                - prediction_minutes
+                """)
     
     # 長所と短所
     col1, col2 = st.columns(2)
