@@ -402,20 +402,37 @@ def update_metrics(predictor: RiverStreamingPredictor, diagnostics: LearningDiag
     # MAE更新
     diagnostics.update_step("7.1_mae_update", StepStatus.RUNNING)
     
-    mae_info = {
-        "mae_10min": predictor.mae_metric.get() if predictor.mae_metric.n > 0 else None,
-        "mae_samples": predictor.mae_metric.n
-    }
+    try:
+        # Riverのメトリクスは.getメソッドで値を取得し、値がない場合は0を返す
+        mae_value = predictor.mae_metric.get()
+        mae_info = {
+            "mae_10min": mae_value if mae_value > 0 else None,
+            "mae_available": mae_value > 0
+        }
+    except Exception as e:
+        mae_info = {
+            "mae_10min": None,
+            "mae_available": False,
+            "error": str(e)
+        }
     
     diagnostics.update_step("7.1_mae_update", StepStatus.SUCCESS, mae_info)
     
     # RMSE更新
     diagnostics.update_step("7.2_rmse_update", StepStatus.RUNNING)
     
-    rmse_info = {
-        "rmse_10min": predictor.rmse_metric.get() if predictor.rmse_metric.n > 0 else None,
-        "rmse_samples": predictor.rmse_metric.n
-    }
+    try:
+        rmse_value = predictor.rmse_metric.get()
+        rmse_info = {
+            "rmse_10min": rmse_value if rmse_value > 0 else None,
+            "rmse_available": rmse_value > 0
+        }
+    except Exception as e:
+        rmse_info = {
+            "rmse_10min": None,
+            "rmse_available": False,
+            "error": str(e)
+        }
     
     diagnostics.update_step("7.2_rmse_update", StepStatus.SUCCESS, rmse_info)
     

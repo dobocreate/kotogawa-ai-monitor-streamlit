@@ -296,7 +296,8 @@ class RiverStreamingPredictor:
             pred_time = base_time + timedelta(minutes=10 * step)
             
             # MAE計算（履歴がある場合）
-            mae_value = self.mae_by_step[f'step_{step}'].get() if self.mae_by_step[f'step_{step}'].n > 0 else None
+            mae_metric = self.mae_by_step[f'step_{step}']
+            mae_value = mae_metric.get() if mae_metric.get() > 0 else None
             
             predictions.append({
                 'datetime': pred_time.isoformat(),
@@ -401,9 +402,9 @@ class RiverStreamingPredictor:
         performance = {
             'n_samples': self.n_samples,
             'model_type': 'River Streaming Model v2 (ARF + ADWIN)',
-            'mae_10min': round(self.mae_metric.get(), 3) if self.mae_metric.n > 0 else None,
-            'rmse_10min': round(self.rmse_metric.get(), 3) if self.rmse_metric.n > 0 else None,
-            'mae_rolling_avg': round(self.mae_rolling.get(), 3) if self.mae_rolling.n > 0 else None,
+            'mae_10min': round(self.mae_metric.get(), 3) if self.mae_metric.get() > 0 else None,
+            'rmse_10min': round(self.rmse_metric.get(), 3) if self.rmse_metric.get() > 0 else None,
+            'mae_rolling_avg': round(self.mae_rolling.get(), 3) if hasattr(self.mae_rolling, 'get') and self.mae_rolling.get() > 0 else None,
             'drift_count': self.drift_count,
             'drift_rate': round(self.drift_count / max(1, self.n_samples) * 100, 2),
             'metrics_by_step': {}
@@ -412,8 +413,8 @@ class RiverStreamingPredictor:
         # 各ステップのメトリクス
         for step in range(1, 19):
             model_key = f'step_{step}'
-            mae_val = self.mae_by_step[model_key].get() if self.mae_by_step[model_key].n > 0 else None
-            rmse_val = self.rmse_by_step[model_key].get() if self.rmse_by_step[model_key].n > 0 else None
+            mae_val = self.mae_by_step[model_key].get() if self.mae_by_step[model_key].get() > 0 else None
+            rmse_val = self.rmse_by_step[model_key].get() if self.rmse_by_step[model_key].get() > 0 else None
             
             performance['metrics_by_step'][f'{step*10}min'] = {
                 'mae': round(mae_val, 3) if mae_val else None,
