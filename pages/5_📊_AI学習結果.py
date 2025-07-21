@@ -477,9 +477,10 @@ else:
                 
                 col1, col2 = st.columns(2)
                 with col1:
+                    success_rate = summary.get('success_rate', 0)
                     st.metric(
                         "成功率",
-                        f"{summary['success_rate']:.1f}%",
+                        f"{success_rate:.1f}%",
                         help="全ステップの成功率"
                     )
                 with col2:
