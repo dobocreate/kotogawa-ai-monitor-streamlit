@@ -155,13 +155,8 @@ class RiverStreamingPredictor:
     def _build_pipeline(self):
         """仕様書準拠のパイプライン構築"""
         # 特徴量エンジニアリングパイプライン
+        # River 0.21.0ではLaggerが利用できないため、シンプルな構成に変更
         self.pipeline = compose.Pipeline(
-            # ラグ特徴量生成
-            fx.Lagger({
-                'water_level': (1, 2, 3),
-                'dam_outflow': (1, 2, 3),
-                'rainfall': (1, 2, 3)
-            }),
             # 欠測値補完
             pp.StatImputer(strategy='mean'),
             # 標準化
