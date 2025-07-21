@@ -1557,11 +1557,11 @@ LAST_UPDATE = "{timestamp}"
             
             # 予測の実行と保存（エラーが発生しても処理を継続）
             try:
-                from river_streaming_prediction_v2 import RiverStreamingPredictor
+                from river_dual_model_predictor import RiverDualModelPredictor
                 from prediction_storage import PredictionStorage
                 
-                # 予測器の初期化
-                predictor = RiverStreamingPredictor()
+                # デュアルモデル予測器の初期化
+                predictor = RiverDualModelPredictor()
                 storage = PredictionStorage()
                 
                 # 予測実行

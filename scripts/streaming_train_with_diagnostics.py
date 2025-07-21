@@ -20,7 +20,7 @@ except ImportError:
 sys.path.append(str(Path(__file__).parent.parent))
 
 from scripts.learning_diagnostics import LearningDiagnostics, StepStatus, check_data_availability, validate_data_format
-from scripts.river_streaming_prediction_v2 import RiverStreamingPredictor
+from scripts.river_dual_model_predictor import RiverDualModelPredictor
 
 
 def check_timestamp_validity(data: Dict, diagnostics: LearningDiagnostics) -> bool:
@@ -260,7 +260,7 @@ def check_past_predictions_for_learning(current_data: Dict, diagnostics: Learnin
         return False, None
 
 
-def initialize_model(diagnostics: LearningDiagnostics) -> Optional[RiverStreamingPredictor]:
+def initialize_model(diagnostics: LearningDiagnostics) -> Optional[RiverDualModelPredictor]:
     """モデルの初期化"""
     # Riverインポート確認
     diagnostics.update_step("4.3_river_import", StepStatus.RUNNING)
@@ -278,29 +278,28 @@ def initialize_model(diagnostics: LearningDiagnostics) -> Optional[RiverStreamin
     diagnostics.update_step("4.1_model_load", StepStatus.RUNNING)
     
     try:
-        predictor = RiverStreamingPredictor()
+        predictor = RiverDualModelPredictor()
         
-        model_path = Path('models/river_streaming_model_v2.pkl')
-        if model_path.exists():
-            diagnostics.update_step("4.1_model_load", StepStatus.SUCCESS, 
-                                  {"model_path": str(model_path),
-                                   "file_size": model_path.stat().st_size,
-                                   "n_samples": predictor.n_samples})
+        # デュアルモデルの読み込み（内部で両モデルを読み込む）
+        if predictor.load_models():
+            model_info = predictor.get_model_info()
+            diagnostics.update_step("4.1_model_load", StepStatus.SUCCESS, model_info)
         else:
-            diagnostics.update_step("4.1_model_load", StepStatus.WARNING, 
-                                  {"message": "既存モデルが見つからず、新規作成しました"})
+            diagnostics.update_step("4.1_model_load", StepStatus.FAILED, 
+                                  {"message": "モデルの読み込みに失敗しました"})
+            return None
         
         # モデルの整合性確認
         diagnostics.update_step("4.2_model_integrity", StepStatus.RUNNING)
         
         integrity_checks = {
-            "has_pipeline": hasattr(predictor, 'pipeline') and predictor.pipeline is not None,
-            "has_models": hasattr(predictor, 'models') and predictor.models is not None,
-            "has_metrics": hasattr(predictor, 'mae_metric') and predictor.mae_metric is not None,
-            "model_count": len(predictor.models) if hasattr(predictor, 'models') else 0
+            "has_base_model": predictor.base_model is not None,
+            "has_adaptive_model": predictor.adaptive_model is not None,
+            "models_loaded": predictor.models_loaded,
+            "adaptive_weight": predictor.adaptive_weight
         }
         
-        if all(integrity_checks.values()):
+        if integrity_checks["has_base_model"] and integrity_checks["has_adaptive_model"] and integrity_checks["models_loaded"]:
             diagnostics.update_step("4.2_model_integrity", StepStatus.SUCCESS, integrity_checks)
         else:
             diagnostics.update_step("4.2_model_integrity", StepStatus.WARNING, integrity_checks)
@@ -316,7 +315,7 @@ def initialize_model(diagnostics: LearningDiagnostics) -> Optional[RiverStreamin
         return None
 
 
-def run_prediction(predictor: RiverStreamingPredictor, data: Dict, diagnostics: LearningDiagnostics) -> Optional[List[Dict]]:
+def run_prediction(predictor: RiverDualModelPredictor, data: Dict, diagnostics: LearningDiagnostics) -> Optional[List[Dict]]:
     """予測の実行"""
     diagnostics.update_step("5.1_prediction_run", StepStatus.RUNNING)
     
@@ -377,7 +376,7 @@ def run_prediction(predictor: RiverStreamingPredictor, data: Dict, diagnostics: 
         return None
 
 
-def run_learning(predictor: RiverStreamingPredictor, current_data: Dict, learning_data: List[Dict], diagnostics: LearningDiagnostics):
+def run_learning(predictor: RiverDualModelPredictor, current_data: Dict, learning_data: List[Dict], diagnostics: LearningDiagnostics):
     """過去の予測に対する学習の実行"""
     diagnostics.update_step("6.1_online_learning", StepStatus.RUNNING)
     
@@ -470,18 +469,24 @@ def run_learning(predictor: RiverStreamingPredictor, current_data: Dict, learnin
         raise
 
 
-def update_metrics(predictor: RiverStreamingPredictor, diagnostics: LearningDiagnostics):
+def update_metrics(predictor: RiverDualModelPredictor, diagnostics: LearningDiagnostics):
     """メトリクスの更新"""
     # MAE更新
     diagnostics.update_step("7.1_mae_update", StepStatus.RUNNING)
     
     try:
-        # Riverのメトリクスは.getメソッドで値を取得し、値がない場合は0を返す
-        mae_value = predictor.mae_metric.get()
-        mae_info = {
-            "mae_10min": mae_value if mae_value > 0 else None,
-            "mae_available": mae_value > 0
-        }
+        # デュアルモデルの場合は適応モデルのメトリクスを使用
+        if hasattr(predictor.adaptive_model, 'mae_metric'):
+            mae_value = predictor.adaptive_model.mae_metric.get()
+            mae_info = {
+                "mae_10min": mae_value if mae_value > 0 else None,
+                "mae_available": mae_value > 0
+            }
+        else:
+            mae_info = {
+                "mae_10min": None,
+                "mae_available": False
+            }
     except Exception as e:
         mae_info = {
             "mae_10min": None,
@@ -495,11 +500,18 @@ def update_metrics(predictor: RiverStreamingPredictor, diagnostics: LearningDiag
     diagnostics.update_step("7.2_rmse_update", StepStatus.RUNNING)
     
     try:
-        rmse_value = predictor.rmse_metric.get()
-        rmse_info = {
-            "rmse_10min": rmse_value if rmse_value > 0 else None,
-            "rmse_available": rmse_value > 0
-        }
+        # デュアルモデルの場合は適応モデルのメトリクスを使用
+        if hasattr(predictor.adaptive_model, 'rmse_metric'):
+            rmse_value = predictor.adaptive_model.rmse_metric.get()
+            rmse_info = {
+                "rmse_10min": rmse_value if rmse_value > 0 else None,
+                "rmse_available": rmse_value > 0
+            }
+        else:
+            rmse_info = {
+                "rmse_10min": None,
+                "rmse_available": False
+            }
     except Exception as e:
         rmse_info = {
             "rmse_10min": None,
@@ -518,7 +530,7 @@ def update_metrics(predictor: RiverStreamingPredictor, diagnostics: LearningDiag
                           {"rolling_window": 100})
 
 
-def save_model(predictor: RiverStreamingPredictor, diagnostics: LearningDiagnostics):
+def save_model(predictor: RiverDualModelPredictor, diagnostics: LearningDiagnostics):
     """モデルの保存"""
     diagnostics.update_step("8.1_model_serialize", StepStatus.RUNNING)
     
@@ -559,7 +571,7 @@ def save_model(predictor: RiverStreamingPredictor, diagnostics: LearningDiagnost
         raise
 
 
-def record_history(predictor: RiverStreamingPredictor, diagnostics: LearningDiagnostics):
+def record_history(predictor: RiverDualModelPredictor, diagnostics: LearningDiagnostics):
     """学習履歴の記録"""
     # 実行時刻の記録（JST）
     jst_offset = timedelta(hours=9)
@@ -583,7 +595,7 @@ def record_history(predictor: RiverStreamingPredictor, diagnostics: LearningDiag
                           {"overall_status": summary["overall_status"]})
 
 
-def generate_diagnostics_info(predictor: RiverStreamingPredictor, diagnostics: LearningDiagnostics):
+def generate_diagnostics_info(predictor: RiverDualModelPredictor, diagnostics: LearningDiagnostics):
     """診断情報の生成"""
     # パフォーマンスメトリクス
     diagnostics.update_step("10.1_performance_metrics", StepStatus.RUNNING)
@@ -592,10 +604,14 @@ def generate_diagnostics_info(predictor: RiverStreamingPredictor, diagnostics: L
         model_info = predictor.get_model_info()
         
         performance_summary = {
-            "mae_10min": model_info.get('mae_10min'),
-            "rmse_10min": model_info.get('rmse_10min'),
-            "drift_rate": model_info.get('drift_rate'),
-            "n_samples": model_info.get('n_samples')
+            "model_type": model_info.get('model_type'),
+            "adaptive_weight": model_info.get('adaptive_weight'),
+            "base_mae": model_info.get('base_model', {}).get('mae_10min'),
+            "adaptive_mae": model_info.get('adaptive_model', {}).get('mae_10min'),
+            "combined_mae": model_info.get('combined_mae_10min'),
+            "base_samples": model_info.get('base_model', {}).get('samples'),
+            "adaptive_samples": model_info.get('adaptive_model', {}).get('samples'),
+            "additional_samples": model_info.get('adaptive_model', {}).get('additional_samples')
         }
         
         diagnostics.update_step("10.1_performance_metrics", StepStatus.SUCCESS, performance_summary)

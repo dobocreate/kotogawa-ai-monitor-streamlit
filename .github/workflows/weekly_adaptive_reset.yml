@@ -1,0 +1,108 @@
+name: Weekly Adaptive Model Reset
+
+on:
+  schedule:
+    # 毎週月曜日の午前3時（JST）に実行
+    # UTC時間で日曜日の18:00
+    - cron: '0 18 * * 0'
+  
+  # 手動実行を許可
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: '手動リセットの理由'
+        required: false
+        default: 'Manual reset requested'
+
+jobs:
+  reset-adaptive-model:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: チェックアウト
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Python環境のセットアップ
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: 依存関係のインストール
+      run: |
+        pip install -r requirements.txt
+    
+    - name: 適応モデルのリセット実行
+      run: |
+        echo "=== 週次適応モデルリセット ==="
+        echo "実行時刻: $(date '+%Y-%m-%d %H:%M:%S UTC')"
+        echo "実行時刻 (JST): $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S JST')"
+        
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "手動実行: ${{ github.event.inputs.reason }}"
+        else
+          echo "定期実行: 週次スケジュール"
+        fi
+        
+        # リセットスクリプトの実行
+        cd scripts
+        python reset_adaptive_model.py
+        
+        # リセット結果の確認
+        if [ $? -eq 0 ]; then
+          echo "リセット処理が正常に完了しました"
+        else
+          echo "リセット処理でエラーが発生しました"
+          exit 1
+        fi
+    
+    - name: リセット履歴の表示
+      run: |
+        cd scripts
+        python reset_adaptive_model.py --history
+    
+    - name: モデル状態の確認
+      run: |
+        cd scripts
+        python -c "
+from river_dual_model_predictor import RiverDualModelPredictor
+predictor = RiverDualModelPredictor()
+if predictor.load_models():
+    predictor.print_status()
+"
+    
+    - name: 変更のコミットとプッシュ
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # 変更があるかチェック
+        if git diff --quiet; then
+          echo "変更はありません"
+        else
+          git add models/river_adaptive_model_v2.pkl
+          git add models/backup/reset_log.json
+          
+          # コミットメッセージ
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            COMMIT_MSG="🔄 Manual adaptive model reset - $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S JST')"
+            if [ -n "${{ github.event.inputs.reason }}" ]; then
+              COMMIT_MSG="$COMMIT_MSG\n\nReason: ${{ github.event.inputs.reason }}"
+            fi
+          else
+            COMMIT_MSG="🔄 Weekly adaptive model reset - $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M:%S JST')"
+          fi
+          
+          git commit -m "$COMMIT_MSG"
+          git push
+        fi
+    
+    - name: 結果の通知
+      if: always()
+      run: |
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "✅ 適応モデルのリセットが正常に完了しました"
+        else
+          echo "❌ 適応モデルのリセットでエラーが発生しました"
+        fi
