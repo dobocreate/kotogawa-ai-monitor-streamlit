@@ -80,31 +80,44 @@ def preprocess_data(data: Dict, diagnostics: LearningDiagnostics) -> Dict:
     # 欠損値の検出
     diagnostics.update_step("2.1_missing_values", StepStatus.RUNNING)
     
-    missing_info = {
+    # データの値を格納（欠損チェック用）
+    data_values = {
         "water_level": None,
         "outflow": None,
         "rainfall": None
     }
     
+    # 欠損フィールドを記録
+    missing_fields = []
+    
     # 水位データ
     river_data = data.get('river', {})
     if river_data and river_data.get('water_level') is not None:
-        missing_info["water_level"] = river_data['water_level']
+        data_values["water_level"] = river_data['water_level']
+    else:
+        missing_fields.append("water_level")
     
     # 放流量データ
     dam_data = data.get('dam', {})
     if dam_data and dam_data.get('outflow') is not None:
-        missing_info["outflow"] = dam_data['outflow']
+        data_values["outflow"] = dam_data['outflow']
+    else:
+        missing_fields.append("outflow")
     
-    # 降雨量データ
+    # 降雨量データ（雨が降っていない場合はNoneやNullになることがある）
     rainfall_data = data.get('rainfall', {})
     if rainfall_data and rainfall_data.get('hourly') is not None:
-        missing_info["rainfall"] = rainfall_data['hourly']
+        data_values["rainfall"] = rainfall_data['hourly']
+    else:
+        missing_fields.append("rainfall")
+        # 降雨量0として扱う（雨が降っていない）
+        data_values["rainfall"] = 0
     
-    missing_count = sum(1 for v in missing_info.values() if v is None)
-    if missing_count > 0:
+    if missing_fields:
         diagnostics.update_step("2.1_missing_values", StepStatus.WARNING, 
-                              {"missing_count": missing_count, "missing_fields": missing_info})
+                              {"missing_count": len(missing_fields), 
+                               "missing_fields": missing_fields,
+                               "note": "降雨量がnullの場合は雨が降っていないことを示す"})
     else:
         diagnostics.update_step("2.1_missing_values", StepStatus.SUCCESS, 
                               {"all_fields_present": True})
@@ -114,18 +127,18 @@ def preprocess_data(data: Dict, diagnostics: LearningDiagnostics) -> Dict:
     outliers = []
     
     # 水位の異常値チェック（負値または極端に大きい値）
-    if missing_info["water_level"] is not None:
-        if missing_info["water_level"] < 0:
-            outliers.append({"field": "water_level", "value": missing_info["water_level"], "reason": "負の値"})
-        elif missing_info["water_level"] > 10:  # 10m以上は異常と判定
-            outliers.append({"field": "water_level", "value": missing_info["water_level"], "reason": "極端に大きい値"})
+    if data_values["water_level"] is not None:
+        if data_values["water_level"] < 0:
+            outliers.append({"field": "water_level", "value": data_values["water_level"], "reason": "負の値"})
+        elif data_values["water_level"] > 10:  # 10m以上は異常と判定
+            outliers.append({"field": "water_level", "value": data_values["water_level"], "reason": "極端に大きい値"})
     
     # 放流量の異常値チェック
-    if missing_info["outflow"] is not None:
-        if missing_info["outflow"] < 0:
-            outliers.append({"field": "outflow", "value": missing_info["outflow"], "reason": "負の値"})
-        elif missing_info["outflow"] > 1000:  # 1000 m³/s以上は異常と判定
-            outliers.append({"field": "outflow", "value": missing_info["outflow"], "reason": "極端に大きい値"})
+    if data_values["outflow"] is not None:
+        if data_values["outflow"] < 0:
+            outliers.append({"field": "outflow", "value": data_values["outflow"], "reason": "負の値"})
+        elif data_values["outflow"] > 1000:  # 1000 m³/s以上は異常と判定
+            outliers.append({"field": "outflow", "value": data_values["outflow"], "reason": "極端に大きい値"})
     
     if outliers:
         diagnostics.update_step("2.2_outlier_detection", StepStatus.WARNING, 
@@ -140,13 +153,38 @@ def preprocess_data(data: Dict, diagnostics: LearningDiagnostics) -> Dict:
     
     # 特徴量の抽出
     diagnostics.update_step("2.4_feature_extraction", StepStatus.SUCCESS, 
-                          {"extracted_features": list(missing_info.keys())})
+                          {"extracted_features": list(data_values.keys())})
     
-    return missing_info
+    return data_values
+
+
+def detect_data_interval(data_points: List[Dict]) -> Optional[int]:
+    """データポイント間の時間間隔を検出（分単位）"""
+    if len(data_points) < 2:
+        return None
+    
+    intervals = []
+    for i in range(1, min(len(data_points), 10)):  # 最大10個のサンプルで判定
+        try:
+            time1 = datetime.fromisoformat(data_points[i-1].get('data_time', ''))
+            time2 = datetime.fromisoformat(data_points[i].get('data_time', ''))
+            interval = (time2 - time1).total_seconds() / 60
+            if 0 < interval < 120:  # 0分より大きく2時間未満の間隔のみ考慮
+                intervals.append(interval)
+        except:
+            continue
+    
+    if not intervals:
+        return None
+    
+    # 中央値を使用（外れ値の影響を受けにくい）
+    intervals.sort()
+    median_idx = len(intervals) // 2
+    return int(intervals[median_idx])
 
 
 def check_future_data(current_data: Dict, diagnostics: LearningDiagnostics) -> Tuple[bool, Optional[List[Dict]]]:
-    """将来データの確認"""
+    """将来データの確認（柔軟な時間間隔対応）"""
     diagnostics.update_step("3.1_future_data_check", StepStatus.RUNNING)
     
     try:
@@ -183,6 +221,11 @@ def check_future_data(current_data: Dict, diagnostics: LearningDiagnostics) -> T
         # 時系列順にソート
         all_recent_data.sort(key=lambda x: x.get('data_time', ''))
         
+        # データ間隔を動的に検出
+        data_interval = detect_data_interval(all_recent_data)
+        if data_interval is None:
+            data_interval = 10  # デフォルト10分
+            
         # 現在のデータのインデックスを見つける
         current_time = current_data.get('data_time')
         current_idx = None
@@ -197,22 +240,41 @@ def check_future_data(current_data: Dict, diagnostics: LearningDiagnostics) -> T
                                   {"message": "現在のデータが履歴に見つかりません"})
             return False, None
         
-        # 3時間後（18ステップ）までのデータが利用可能か確認
-        future_available = current_idx + 18 < len(all_recent_data)
+        # 利用可能な将来データを収集（最大3時間分、ただし利用可能な分だけ）
+        future_data = []
+        current_dt = datetime.fromisoformat(current_time)
+        max_future_time = current_dt + timedelta(hours=3)
         
-        if not future_available:
-            available_steps = len(all_recent_data) - current_idx - 1
+        for i in range(current_idx + 1, len(all_recent_data)):
+            data = all_recent_data[i]
+            try:
+                data_dt = datetime.fromisoformat(data.get('data_time', ''))
+                if data_dt > max_future_time:
+                    break
+                future_data.append(data)
+            except:
+                continue
+        
+        # 利用可能なステップ数を計算
+        available_steps = len(future_data)
+        expected_steps = int(180 / data_interval)  # 3時間分の期待ステップ数
+        
+        if available_steps == 0:
             diagnostics.update_step("3.1_future_data_check", StepStatus.WARNING, 
-                                  {"message": f"将来データが不足しています（{available_steps}/18ステップ）",
-                                   "available_steps": available_steps,
-                                   "required_steps": 18})
+                                  {"message": "将来データがまだ利用できません",
+                                   "available_steps": 0,
+                                   "data_interval_minutes": data_interval})
             return False, None
-        
-        diagnostics.update_step("3.1_future_data_check", StepStatus.SUCCESS, 
-                              {"future_steps_available": 18})
-        
-        # 将来データを取得
-        future_data = all_recent_data[current_idx + 1:current_idx + 19]
+        elif available_steps < expected_steps:
+            diagnostics.update_step("3.1_future_data_check", StepStatus.SUCCESS, 
+                                  {"message": f"部分的な将来データが利用可能（{available_steps}/{expected_steps}ステップ）",
+                                   "available_steps": available_steps,
+                                   "expected_steps": expected_steps,
+                                   "data_interval_minutes": data_interval})
+        else:
+            diagnostics.update_step("3.1_future_data_check", StepStatus.SUCCESS, 
+                                  {"future_steps_available": available_steps,
+                                   "data_interval_minutes": data_interval})
         
         # 完全性チェック
         diagnostics.update_step("3.2_future_completeness", StepStatus.RUNNING)
@@ -241,7 +303,8 @@ def check_future_data(current_data: Dict, diagnostics: LearningDiagnostics) -> T
         diagnostics.update_step("3.3_target_data_check", StepStatus.SUCCESS, 
                               {"target_times_available": len(future_data)})
         
-        return True, future_data
+        # 部分的なデータでも学習可能とする
+        return True, future_data if future_data else None
         
     except Exception as e:
         diagnostics.update_step("3.1_future_data_check", StepStatus.FAILED, error=e)
@@ -366,24 +429,41 @@ def run_prediction(predictor: RiverStreamingPredictor, data: Dict, diagnostics: 
 
 
 def run_learning(predictor: RiverStreamingPredictor, data: Dict, future_data: List[Dict], diagnostics: LearningDiagnostics):
-    """学習の実行"""
+    """学習の実行（部分的なデータでも対応）"""
     diagnostics.update_step("6.1_online_learning", StepStatus.RUNNING)
     
     try:
         initial_samples = predictor.n_samples
         
-        # 学習実行
+        # 利用可能なデータ数を確認
+        available_data_count = len(future_data) if future_data else 0
+        
+        if available_data_count == 0:
+            diagnostics.update_step("6.1_online_learning", StepStatus.SKIPPED, 
+                                  {"reason": "将来データが利用できません"})
+            diagnostics.update_step("6.2_step_learning", StepStatus.SKIPPED, 
+                                  {"reason": "将来データが利用できません"})
+            diagnostics.update_step("6.3_drift_detection", StepStatus.SKIPPED, 
+                                  {"reason": "将来データが利用できません"})
+            diagnostics.update_step("6.4_error_handling", StepStatus.SKIPPED, 
+                                  {"reason": "将来データが利用できません"})
+            return
+        
+        # 部分的なデータでも学習実行
         predictor.learn_one(data, future_data)
         
         samples_learned = predictor.n_samples - initial_samples
         
         diagnostics.update_step("6.1_online_learning", StepStatus.SUCCESS, 
                               {"samples_learned": samples_learned,
-                               "total_samples": predictor.n_samples})
+                               "total_samples": predictor.n_samples,
+                               "available_future_steps": available_data_count,
+                               "note": f"{available_data_count}ステップ分の将来データで学習"})
         
         # 各時間ステップでの学習状況
         diagnostics.update_step("6.2_step_learning", StepStatus.SUCCESS, 
-                              {"steps_processed": len(future_data)})
+                              {"steps_processed": available_data_count,
+                               "partial_learning": available_data_count < 18})
         
         # ドリフト検出
         diagnostics.update_step("6.3_drift_detection", StepStatus.RUNNING)
@@ -588,8 +668,6 @@ def streaming_learn_with_diagnostics():
         
         # 4. 将来データ確認
         has_future_data, future_data = check_future_data(latest_data, diagnostics)
-        if not has_future_data:
-            print("将来データが不足しています - 予測のみ実行します")
         
         # 5. モデル初期化
         predictor = initialize_model(diagnostics)
@@ -602,10 +680,11 @@ def streaming_learn_with_diagnostics():
         if predictions:
             print(f"予測実行: 10分先 = {predictions[0]['level']:.2f}m")
         
-        # 7. 学習実行
-        if has_future_data and future_data:
+        # 7. 学習実行（利用可能なデータで柔軟に学習）
+        if future_data and len(future_data) > 0:
+            print(f"利用可能な将来データ: {len(future_data)}ステップ")
             run_learning(predictor, latest_data, future_data, diagnostics)
-            print("学習完了")
+            print(f"学習完了（{len(future_data)}ステップ分）")
         else:
             print("学習をスキップ（将来データなし）")
             # 学習関連のステップをスキップとしてマーク
