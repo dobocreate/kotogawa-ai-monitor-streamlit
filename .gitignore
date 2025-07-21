@@ -26,6 +26,7 @@ Thumbs.db
 .env
 .env.local
 doc/
+docs/
 kotogawa_env/
 
 # Temporary files

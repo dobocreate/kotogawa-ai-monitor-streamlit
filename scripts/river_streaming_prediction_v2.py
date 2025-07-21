@@ -91,7 +91,10 @@ class DynamicDelayEstimator:
             # 学習済みモデルで予測
             try:
                 predicted_delay = self.delay_model.predict_one(features)
-                base_delay = max(10, min(180, predicted_delay))  # 10-180分に制限
+                if predicted_delay is not None:
+                    base_delay = max(10, min(180, predicted_delay))  # 10-180分に制限
+                else:
+                    base_delay = self.get_initial_delay(outflow)
                 confidence = min(0.9, 0.3 + self.n_learned / 100)
             except:
                 base_delay = self.get_initial_delay(outflow)
@@ -187,9 +190,16 @@ class RiverStreamingPredictor:
         """データから特徴量を抽出（仕様書準拠）"""
         # 基本データ取得
         timestamp = data.get('data_time', data.get('timestamp', ''))
-        level = data.get('river', {}).get('water_level', 0)
-        outflow = data.get('dam', {}).get('outflow', 0)
-        rainfall = data.get('rainfall', {}).get('hourly', 0)
+        
+        # 安全な値取得（Noneの場合はデフォルト値を使用）
+        river_data = data.get('river') or {}
+        level = river_data.get('water_level') if river_data.get('water_level') is not None else 0
+        
+        dam_data = data.get('dam') or {}
+        outflow = dam_data.get('outflow') if dam_data.get('outflow') is not None else 0
+        
+        rainfall_data = data.get('rainfall') or {}
+        rainfall = rainfall_data.get('hourly') if rainfall_data.get('hourly') is not None else 0
         
         # 前回観測からの経過時間計算
         elapsed_min = 10  # デフォルト10分
@@ -234,7 +244,10 @@ class RiverStreamingPredictor:
         try:
             # 10分先予測
             base_prediction = self.pipeline.predict_one(features)
-            base_change = base_prediction - current_level if base_prediction else 0
+            if base_prediction is not None:
+                base_change = base_prediction - current_level
+            else:
+                base_change = 0
         except:
             base_change = 0
         
@@ -265,6 +278,9 @@ class RiverStreamingPredictor:
                     pred_change = base_change
                 else:
                     pred_change = self.models[model_key].predict_one(step_features)
+                    # predict_oneがNoneを返す場合の対処
+                    if pred_change is None:
+                        pred_change = 0
                 
                 pred_level = current_level + accumulated_change + pred_change
                 pred_level = max(0, pred_level)  # 負値を防ぐ
@@ -324,7 +340,10 @@ class RiverStreamingPredictor:
                         
                         # ドリフト検出
                         pred = self.pipeline.predict_one(features)
-                        error = abs(actual_level - pred)
+                        if pred is not None:
+                            error = abs(actual_level - pred)
+                        else:
+                            error = abs(actual_level - current_level)  # フォールバック
                         self.drift_detector.update(error)
                         if self.drift_detector.drift_detected:
                             self.drift_count += 1
@@ -345,6 +364,8 @@ class RiverStreamingPredictor:
                     
                     # メトリクス更新
                     pred_change = self.models[model_key].predict_one(step_features)
+                    if pred_change is None:
+                        pred_change = 0
                     pred_level = current_level + accumulated_change + pred_change
                     
                     self.mae_by_step[model_key].update(actual_level, pred_level)
