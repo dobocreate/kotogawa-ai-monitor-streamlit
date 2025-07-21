@@ -21,7 +21,8 @@ from river import (
     metrics,
     stats,
     linear_model,
-    optim
+    optim,
+    utils
 )
 from river.stats import Mean
 
@@ -142,9 +143,9 @@ class RiverStreamingPredictor:
         self.drift_count = 0
         self.drift_history = deque(maxlen=100)
         
-        # 統計量追跡
-        self.level_stats = stats.RollingMean(window_size=100)
-        self.mae_rolling = stats.RollingMean(window_size=100)
+        # 統計量追跡（River 0.22.0対応）
+        self.level_stats = utils.Rolling(stats.Mean(), window_size=100)
+        self.mae_rolling = utils.Rolling(stats.Mean(), window_size=100)
         
         # 学習回数
         self.n_samples = 0
