@@ -77,18 +77,27 @@ jobs:
         git pull --rebase origin master
         git push
         
-    - name: Run streaming learning (3 hours after data point)
+    - name: Run streaming learning with diagnostics (3 hours after data point)
       if: steps.changes.outputs.has_changes == 'true'
       run: |
         # 3時間前のデータで学習を試みる（実測値が揃っているため）
-        echo "Attempting streaming learning..."
-        python scripts/streaming_train.py || echo "Learning skipped (no future data available yet)"
+        echo "Attempting streaming learning with diagnostics..."
+        python scripts/streaming_train_with_diagnostics.py || echo "Learning skipped (no future data available yet)"
         
-    - name: Commit model updates
+    - name: Commit model updates and diagnostics
       run: |
+        # モデル更新のコミット
         if [[ -n $(git status --porcelain models/) ]]; then
           git add models/
           git commit -m "🤖 Update River model (streaming) - $(date '+%Y-%m-%d %H:%M:%S UTC')"
+          git pull --rebase origin master
+          git push
+        fi
+        
+        # 診断結果のコミット
+        if [[ -n $(git status --porcelain diagnostics/) ]]; then
+          git add diagnostics/
+          git commit -m "🔍 Update learning diagnostics - $(date '+%Y-%m-%d %H:%M:%S UTC')"
           git pull --rebase origin master
           git push
         fi
