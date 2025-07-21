@@ -95,6 +95,9 @@ jobs:
         
     - name: Commit model updates and diagnostics
       run: |
+        # すべての変更を確認
+        git status
+        
         # 変更をまとめてステージング
         changes_found=false
         
@@ -108,11 +111,35 @@ jobs:
           changes_found=true
         fi
         
+        # predictionsディレクトリも確認（存在する場合）
+        if [[ -d predictions/ ]] && [[ -n $(git status --porcelain predictions/) ]]; then
+          git add predictions/
+          changes_found=true
+        fi
+        
         # 変更がある場合は一度にコミット・プッシュ
         if [ "$changes_found" = true ]; then
+          # すべての変更を再度確認してステージング
+          git add -A
           git commit -m "🤖 Update model and diagnostics - $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')"
+          
+          # リベースの前に状態を確認
+          git status
+          
+          # 念のため、未ステージの変更がある場合はstash
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "Stashing unexpected changes..."
+            git stash
+          fi
+          
           git pull --rebase origin master
           git push
+          
+          # stashがある場合は戻す（通常は不要）
+          if git stash list | grep -q "stash@{0}"; then
+            echo "Restoring stashed changes..."
+            git stash pop || true
+          fi
         fi
         
     - name: Cleanup on failure
