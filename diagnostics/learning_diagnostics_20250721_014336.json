@@ -1,0 +1,32 @@
+{
+  "summary": {
+    "overall_status": "失敗",
+    "start_time": "2025-07-21T01:43:36.423703",
+    "end_time": "2025-07-21T01:43:36.423810",
+    "duration_seconds": 0.000107,
+    "status_counts": {
+      "✅ 成功": 0,
+      "❌ 失敗": 1,
+      "⚠️ 警告": 0,
+      "⏭️ スキップ": 0,
+      "⏸️ 未実行": 38,
+      "⏳ 実行中": 0
+    },
+    "failed_steps": [
+      {
+        "id": "1.1_file_check",
+        "name": "最新データファイルの確認",
+        "error": "詳細なし"
+      }
+    ],
+    "warning_steps": [],
+    "total_steps": 39
+  },
+  "phases": {
+    "1_data_acquisition": {
+      "name": "データ取得フェーズ",
+      "status": "❌ 失敗",
+      "steps": [
+        {
+          "name": "最新データファイルの確認",
+          "status": 
