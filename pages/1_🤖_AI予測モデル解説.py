@@ -32,6 +32,29 @@ st.set_page_config(
     layout="wide"
 )
 
+# カスタムCSS
+st.markdown("""
+<style>
+    /* サイドバーのページナビゲーションボタンのフォントサイズを大きく */
+    [data-testid="stSidebar"] a[href^="/"] {
+        font-size: 18px !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 1rem !important;
+    }
+    
+    /* サイドバーのページナビゲーションボタンのアイコンも大きく */
+    [data-testid="stSidebar"] a[href^="/"] span {
+        font-size: 20px !important;
+    }
+    
+    /* サイドバーのページナビゲーションリンクのスタイル調整 */
+    [data-testid="stSidebar"] [data-testid="stSidebarNav"] a {
+        font-size: 18px !important;
+        font-weight: 500 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 def main():
     """メイン処理"""
     st.title("🤖 AI予測モデル解説")
@@ -42,6 +65,8 @@ def main():
     
     # 現在の利用可能状況を表示
     with st.sidebar:
+        st.markdown("# 厚東川AI氾濫監視システム")
+        st.markdown("---")
         st.markdown("### 📊 モデル利用可能状況")
         st.markdown(f"エキスパートルール: {'✅' if EXPERT_AVAILABLE else '❌'}")
         st.markdown(f"Riverストリーミング予測: {'✅' if STREAMING_AVAILABLE else '❌'}")

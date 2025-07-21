@@ -24,6 +24,29 @@ st.set_page_config(
     layout="wide"
 )
 
+# カスタムCSS
+st.markdown("""
+<style>
+    /* サイドバーのページナビゲーションボタンのフォントサイズを大きく */
+    [data-testid="stSidebar"] a[href^="/"] {
+        font-size: 18px !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 1rem !important;
+    }
+    
+    /* サイドバーのページナビゲーションボタンのアイコンも大きく */
+    [data-testid="stSidebar"] a[href^="/"] span {
+        font-size: 20px !important;
+    }
+    
+    /* サイドバーのページナビゲーションリンクのスタイル調整 */
+    [data-testid="stSidebar"] [data-testid="stSidebarNav"] a {
+        font-size: 18px !important;
+        font-weight: 500 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🔍 学習プロセス診断")
 st.markdown("モデルの学習プロセスを詳細に分析し、問題の特定を支援します。")
 
@@ -340,6 +363,8 @@ with tab3:
 
 # サイドバーに簡易ステータス表示
 with st.sidebar:
+    st.markdown("# 厚東川AI氾濫監視システム")
+    st.markdown("---")
     st.markdown("### 🔍 診断ステータス")
     
     latest = load_latest_diagnostics()

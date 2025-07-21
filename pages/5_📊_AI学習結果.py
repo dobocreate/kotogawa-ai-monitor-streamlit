@@ -21,6 +21,29 @@ st.set_page_config(
     layout="wide"
 )
 
+# カスタムCSS
+st.markdown("""
+<style>
+    /* サイドバーのページナビゲーションボタンのフォントサイズを大きく */
+    [data-testid="stSidebar"] a[href^="/"] {
+        font-size: 18px !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 1rem !important;
+    }
+    
+    /* サイドバーのページナビゲーションボタンのアイコンも大きく */
+    [data-testid="stSidebar"] a[href^="/"] span {
+        font-size: 20px !important;
+    }
+    
+    /* サイドバーのページナビゲーションリンクのスタイル調整 */
+    [data-testid="stSidebar"] [data-testid="stSidebarNav"] a {
+        font-size: 18px !important;
+        font-weight: 500 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("📊 AI学習結果")
 st.markdown("機械学習モデルの学習状況と予測精度を確認します。")
 
@@ -647,6 +670,8 @@ else:
 
 # サイドバー情報
 with st.sidebar:
+    st.markdown("# 厚東川AI氾濫監視システム")
+    st.markdown("---")
     st.markdown("### 📊 学習状況")
     
     if model_info:
