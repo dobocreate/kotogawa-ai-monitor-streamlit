@@ -95,18 +95,22 @@ jobs:
         
     - name: Commit model updates and diagnostics
       run: |
-        # モデル更新のコミット
+        # 変更をまとめてステージング
+        changes_found=false
+        
         if [[ -n $(git status --porcelain models/) ]]; then
           git add models/
-          git commit -m "🤖 Update River model (streaming) - $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')"
-          git pull --rebase origin master
-          git push
+          changes_found=true
         fi
         
-        # 診断結果のコミット（ディレクトリが存在する場合のみ）
         if [[ -d diagnostics/ ]] && [[ -n $(git status --porcelain diagnostics/) ]]; then
           git add diagnostics/
-          git commit -m "🔍 Update learning diagnostics - $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')"
+          changes_found=true
+        fi
+        
+        # 変更がある場合は一度にコミット・プッシュ
+        if [ "$changes_found" = true ]; then
+          git commit -m "🤖 Update model and diagnostics - $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')"
           git pull --rebase origin master
           git push
         fi
