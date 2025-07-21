@@ -9,7 +9,12 @@ from datetime import datetime, timedelta, timezone
 import sys
 import traceback
 from typing import Dict, List, Optional, Tuple
-from zoneinfo import ZoneInfo
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    # Python 3.8以前の場合はpytzを使用
+    from pytz import timezone as pytz_timezone
+    ZoneInfo = lambda x: pytz_timezone(x)
 
 # プロジェクトルートをパスに追加
 sys.path.append(str(Path(__file__).parent.parent))
@@ -32,13 +37,18 @@ def check_timestamp_validity(data: Dict, diagnostics: LearningDiagnostics) -> bo
         # タイムスタンプのパース
         timestamp = datetime.fromisoformat(timestamp_str)
         
-        # 現在時刻をJSTで取得（タイムゾーン付き）
-        jst = ZoneInfo('Asia/Tokyo')
-        now = datetime.now(jst)
+        # 現在時刻をJSTで取得（より互換性の高い方法）
+        jst_offset = timedelta(hours=9)
+        jst_tz = timezone(jst_offset)
+        now = datetime.now(jst_tz)
         
         # タイムスタンプがタイムゾーンなしの場合、JSTとして扱う
         if timestamp.tzinfo is None:
-            timestamp = timestamp.replace(tzinfo=jst)
+            timestamp = timestamp.replace(tzinfo=jst_tz)
+        # タイムスタンプがUTCオフセット形式（+09:00など）の場合も正しく処理
+        elif timestamp.tzinfo.utcoffset(None) is None:
+            # pytzなどの特殊なタイムゾーンオブジェクトの場合
+            timestamp = timestamp.replace(tzinfo=jst_tz)
         
         # 未来のデータでないかチェック
         if timestamp > now:
@@ -145,9 +155,10 @@ def check_future_data(current_data: Dict, diagnostics: LearningDiagnostics) -> T
         all_recent_data = []
         
         # 今日と昨日のデータを履歴ディレクトリから読み込み
-        jst = ZoneInfo('Asia/Tokyo')
+        jst_offset = timedelta(hours=9)
+        jst_tz = timezone(jst_offset)
         for days_ago in range(2):
-            date = datetime.now(jst)
+            date = datetime.now(jst_tz)
             if days_ago > 0:
                 date = date - timedelta(days=days_ago)
             
@@ -537,9 +548,10 @@ def generate_diagnostics_info(predictor: RiverStreamingPredictor, diagnostics: L
                           {"quality_score": 0.95})  # 仮の値
     
     # 次回学習推奨時刻
-    jst = ZoneInfo('Asia/Tokyo')
+    jst_offset = timedelta(hours=9)
+    jst_tz = timezone(jst_offset)
     diagnostics.update_step("10.4_next_schedule", StepStatus.SUCCESS, 
-                          {"next_learning_time": (datetime.now(jst) + timedelta(hours=3)).isoformat()})
+                          {"next_learning_time": (datetime.now(jst_tz) + timedelta(hours=3)).isoformat()})
 
 
 def streaming_learn_with_diagnostics():
@@ -616,8 +628,9 @@ def streaming_learn_with_diagnostics():
         diagnostics.complete_diagnostics()
         
         # 結果を保存
-        jst = ZoneInfo('Asia/Tokyo')
-        result_path = Path('diagnostics') / f'learning_diagnostics_{datetime.now(jst).strftime("%Y%m%d_%H%M%S")}.json'
+        jst_offset = timedelta(hours=9)
+        jst_tz = timezone(jst_offset)
+        result_path = Path('diagnostics') / f'learning_diagnostics_{datetime.now(jst_tz).strftime("%Y%m%d_%H%M%S")}.json'
         result_path.parent.mkdir(parents=True, exist_ok=True)
         diagnostics.save_results(result_path)
         
