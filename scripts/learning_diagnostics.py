@@ -30,71 +30,81 @@ class LearningDiagnostics:
     def start_diagnostics(self):
         """診断の開始"""
         self.start_time = datetime.now()
+        # ステップを初期化（status_textも含める）
+        def create_step(name: str, status: StepStatus = StepStatus.PENDING):
+            return {
+                "name": name,
+                "status": status,
+                "status_text": status.value,
+                "details": {}
+            }
+        
         self.steps = {
             # 1. データ取得フェーズ
-            "1.1_file_check": {"name": "最新データファイルの確認", "status": StepStatus.PENDING, "details": {}},
-            "1.2_file_read": {"name": "データファイルの読み込み", "status": StepStatus.PENDING, "details": {}},
-            "1.3_format_validation": {"name": "データ形式の検証", "status": StepStatus.PENDING, "details": {}},
-            "1.4_timestamp_check": {"name": "タイムスタンプの妥当性確認", "status": StepStatus.PENDING, "details": {}},
+            "1.1_file_check": create_step("最新データファイルの確認"),
+            "1.2_file_read": create_step("データファイルの読み込み"),
+            "1.3_format_validation": create_step("データ形式の検証"),
+            "1.4_timestamp_check": create_step("タイムスタンプの妥当性確認"),
             
             # 2. データ前処理フェーズ
-            "2.1_missing_values": {"name": "欠損値の検出と処理", "status": StepStatus.PENDING, "details": {}},
-            "2.2_outlier_detection": {"name": "異常値の検出", "status": StepStatus.PENDING, "details": {}},
-            "2.3_continuity_check": {"name": "時系列の連続性確認", "status": StepStatus.PENDING, "details": {}},
-            "2.4_feature_extraction": {"name": "特徴量の抽出", "status": StepStatus.PENDING, "details": {}},
+            "2.1_missing_values": create_step("欠損値の検出と処理"),
+            "2.2_outlier_detection": create_step("異常値の検出"),
+            "2.3_continuity_check": create_step("時系列の連続性確認"),
+            "2.4_feature_extraction": create_step("特徴量の抽出"),
             
             # 3. 将来データの確認フェーズ
-            "3.1_future_data_check": {"name": "将来データの存在確認", "status": StepStatus.PENDING, "details": {}},
-            "3.2_future_completeness": {"name": "将来データの完全性チェック", "status": StepStatus.PENDING, "details": {}},
-            "3.3_target_data_check": {"name": "予測対象時刻のデータ確認", "status": StepStatus.PENDING, "details": {}},
+            "3.1_future_data_check": create_step("将来データの存在確認"),
+            "3.2_future_completeness": create_step("将来データの完全性チェック"),
+            "3.3_target_data_check": create_step("予測対象時刻のデータ確認"),
             
             # 4. モデル初期化フェーズ
-            "4.1_model_load": {"name": "既存モデルの読み込み", "status": StepStatus.PENDING, "details": {}},
-            "4.2_model_integrity": {"name": "モデルの整合性確認", "status": StepStatus.PENDING, "details": {}},
-            "4.3_river_import": {"name": "Riverモジュールのインポート", "status": StepStatus.PENDING, "details": {}},
-            "4.4_pipeline_build": {"name": "パイプラインの構築", "status": StepStatus.PENDING, "details": {}},
+            "4.1_model_load": create_step("既存モデルの読み込み"),
+            "4.2_model_integrity": create_step("モデルの整合性確認"),
+            "4.3_river_import": create_step("Riverモジュールのインポート"),
+            "4.4_pipeline_build": create_step("パイプラインの構築"),
             
             # 5. 予測実行フェーズ
-            "5.1_prediction_run": {"name": "現在データでの予測実行", "status": StepStatus.PENDING, "details": {}},
-            "5.2_step_predictions": {"name": "各ステップの予測値生成", "status": StepStatus.PENDING, "details": {}},
-            "5.3_prediction_validation": {"name": "予測値の妥当性確認", "status": StepStatus.PENDING, "details": {}},
-            "5.4_confidence_calc": {"name": "信頼度スコアの計算", "status": StepStatus.PENDING, "details": {}},
+            "5.1_prediction_run": create_step("現在データでの予測実行"),
+            "5.2_step_predictions": create_step("各ステップの予測値生成"),
+            "5.3_prediction_validation": create_step("予測値の妥当性確認"),
+            "5.4_confidence_calc": create_step("信頼度スコアの計算"),
             
             # 6. 学習実行フェーズ
-            "6.1_online_learning": {"name": "オンライン学習の実行", "status": StepStatus.PENDING, "details": {}},
-            "6.2_step_learning": {"name": "各時間ステップでの学習", "status": StepStatus.PENDING, "details": {}},
-            "6.3_drift_detection": {"name": "ドリフト検出の実行", "status": StepStatus.PENDING, "details": {}},
-            "6.4_error_handling": {"name": "学習エラーのハンドリング", "status": StepStatus.PENDING, "details": {}},
+            "6.1_online_learning": create_step("オンライン学習の実行"),
+            "6.2_step_learning": create_step("各時間ステップでの学習"),
+            "6.3_drift_detection": create_step("ドリフト検出の実行"),
+            "6.4_error_handling": create_step("学習エラーのハンドリング"),
             
             # 7. 評価メトリクス更新フェーズ
-            "7.1_mae_update": {"name": "MAEの計算と更新", "status": StepStatus.PENDING, "details": {}},
-            "7.2_rmse_update": {"name": "RMSEの計算と更新", "status": StepStatus.PENDING, "details": {}},
-            "7.3_step_metrics": {"name": "ステップ別精度の記録", "status": StepStatus.PENDING, "details": {}},
-            "7.4_rolling_stats": {"name": "ローリング統計の更新", "status": StepStatus.PENDING, "details": {}},
+            "7.1_mae_update": create_step("MAEの計算と更新"),
+            "7.2_rmse_update": create_step("RMSEの計算と更新"),
+            "7.3_step_metrics": create_step("ステップ別精度の記録"),
+            "7.4_rolling_stats": create_step("ローリング統計の更新"),
             
             # 8. モデル保存フェーズ
-            "8.1_model_serialize": {"name": "モデルのシリアライズ", "status": StepStatus.PENDING, "details": {}},
-            "8.2_save_directory": {"name": "保存先ディレクトリの確認", "status": StepStatus.PENDING, "details": {}},
-            "8.3_file_write": {"name": "ファイル書き込みの実行", "status": StepStatus.PENDING, "details": {}},
-            "8.4_save_verify": {"name": "保存成功の確認", "status": StepStatus.PENDING, "details": {}},
+            "8.1_model_serialize": create_step("モデルのシリアライズ"),
+            "8.2_save_directory": create_step("保存先ディレクトリの確認"),
+            "8.3_file_write": create_step("ファイル書き込みの実行"),
+            "8.4_save_verify": create_step("保存成功の確認"),
             
             # 9. 学習履歴記録フェーズ
-            "9.1_time_record": {"name": "学習実行時刻の記録", "status": StepStatus.PENDING, "details": {}},
-            "9.2_data_count": {"name": "処理データ数の記録", "status": StepStatus.PENDING, "details": {}},
-            "9.3_error_record": {"name": "エラー発生箇所の記録", "status": StepStatus.PENDING, "details": {}},
-            "9.4_status_record": {"name": "成功/失敗ステータスの記録", "status": StepStatus.PENDING, "details": {}},
+            "9.1_time_record": create_step("学習実行時刻の記録"),
+            "9.2_data_count": create_step("処理データ数の記録"),
+            "9.3_error_record": create_step("エラー発生箇所の記録"),
+            "9.4_status_record": create_step("成功/失敗ステータスの記録"),
             
             # 10. 診断情報生成フェーズ
-            "10.1_performance_metrics": {"name": "モデル性能指標の生成", "status": StepStatus.PENDING, "details": {}},
-            "10.2_drift_history": {"name": "ドリフト検出履歴の生成", "status": StepStatus.PENDING, "details": {}},
-            "10.3_data_quality": {"name": "データ品質統計の生成", "status": StepStatus.PENDING, "details": {}},
-            "10.4_next_schedule": {"name": "次回学習推奨時刻の計算", "status": StepStatus.PENDING, "details": {}},
+            "10.1_performance_metrics": create_step("モデル性能指標の生成"),
+            "10.2_drift_history": create_step("ドリフト検出履歴の生成"),
+            "10.3_data_quality": create_step("データ品質統計の生成"),
+            "10.4_next_schedule": create_step("次回学習推奨時刻の計算"),
         }
     
     def update_step(self, step_id: str, status: StepStatus, details: Dict = None, error: Exception = None):
         """ステップの状態を更新"""
         if step_id in self.steps:
             self.steps[step_id]["status"] = status
+            self.steps[step_id]["status_text"] = status.value  # JSON用にテキストも保存
             self.steps[step_id]["timestamp"] = datetime.now().isoformat()
             
             if details:
@@ -229,15 +239,21 @@ class LearningDiagnostics:
                 if step_id in self.steps:
                     step_data = self.steps[step_id].copy()
                     step_data["id"] = step_id
-                    step_data["status_text"] = step_data["status"].value
+                    # status_textが既に設定されていない場合のみ追加
+                    if "status_text" not in step_data and isinstance(step_data.get("status"), StepStatus):
+                        step_data["status_text"] = step_data["status"].value
+                    # StepStatusオブジェクトを削除（JSON化できないため）
+                    if "status" in step_data and isinstance(step_data["status"], StepStatus):
+                        del step_data["status"]
                     phase_steps.append(step_data)
                     
-                    # フェーズ全体のステータスを判定
-                    if step_data["status"] == StepStatus.FAILED:
+                    # フェーズ全体のステータスを判定（元のstepデータから）
+                    original_status = self.steps[step_id]["status"]
+                    if original_status == StepStatus.FAILED:
                         phase_status = StepStatus.FAILED
-                    elif step_data["status"] == StepStatus.WARNING and phase_status != StepStatus.FAILED:
+                    elif original_status == StepStatus.WARNING and phase_status != StepStatus.FAILED:
                         phase_status = StepStatus.WARNING
-                    elif step_data["status"] in [StepStatus.PENDING, StepStatus.RUNNING] and phase_status not in [StepStatus.FAILED, StepStatus.WARNING]:
+                    elif original_status in [StepStatus.PENDING, StepStatus.RUNNING] and phase_status not in [StepStatus.FAILED, StepStatus.WARNING]:
                         phase_status = StepStatus.RUNNING
             
             results["phases"][phase_id] = {

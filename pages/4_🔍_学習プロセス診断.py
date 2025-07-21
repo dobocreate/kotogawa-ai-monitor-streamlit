@@ -35,8 +35,17 @@ def load_latest_diagnostics():
     
     latest_file = max(files, key=lambda f: f.stat().st_mtime)
     
-    with open(latest_file, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    try:
+        with open(latest_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        st.error(f"診断結果ファイルの読み込みエラー: {latest_file.name}")
+        st.error(f"エラー詳細: {str(e)}")
+        # 破損したファイルを削除または移動することを検討
+        return None
+    except Exception as e:
+        st.error(f"予期しないエラー: {str(e)}")
+        return None
 
 
 def load_all_diagnostics():
