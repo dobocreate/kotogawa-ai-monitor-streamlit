@@ -18,7 +18,7 @@ except ImportError:
     EXPERT_AVAILABLE = False
 
 try:
-    from scripts.river_streaming_prediction import RiverStreamingPredictor
+    from scripts.river_streaming_prediction_v2 import RiverStreamingPredictor
     STREAMING_AVAILABLE = True
 except ImportError:
     STREAMING_AVAILABLE = False
@@ -162,11 +162,12 @@ def show_river_streaming_explanation():
     Riverストリーミング予測は、機械学習ライブラリ「River」を使用した適応型予測モデルです。
     データから継続的に学習し、時間とともに予測精度を向上させます。
     
-    **最新バージョン（v2）では仕様書に基づいた以下の機能を実装：**
+    **最新バージョン（v2）では真のストリーム学習を実装：**
+    - **遅延フィードバック学習**：予測時点と学習時点を分離し、実測値が確定後に学習
+    - **予測結果の保存**：全ての予測を保存し、後で実測値と比較して学習
     - **ARFRegressor**：適応的ランダムフォレストによる高精度予測
     - **ADWINドリフト検出**：概念ドリフトを自動検知し、モデルを適応
-    - **MAE/RMSE追跡**：リアルタイムで予測精度を監視
-    - **GitHub Actions統合**：Streamlit.ioの制約を回避し、自動学習を実現
+    - **プログレッシブ検証**：各予測時点での精度を個別に評価
     """)
     
     
@@ -176,18 +177,18 @@ def show_river_streaming_explanation():
         
         with col1:
             st.markdown("""
-            **動的遅延推定**
-            - ダム放流量に応じて水の到達時間を動的に調整
-            - 低流量時（<50m³/s）: 90分遅延
-            - 中流量時（50-100m³/s）: 60分遅延
-            - 高流量時（>100m³/s）: 30分遅延
-            - 実測値に基づいて継続的に改善
+            **遅延フィードバック学習**
+            - データ到着時に即座に予測を実行
+            - 予測結果を保存（predictions/ディレクトリ）
+            - 実測値が確定後（10分後）に学習
+            - 過去の予測と実測値を比較して精度向上
+            - River MLのベストプラクティスに準拠
             """)
             
             st.markdown("""
             **真のストリーミング処理**
             - 1件ずつのデータをリアルタイム処理
-            - predict_oneメソッドで即座に予測
+            - predict_one → learn_oneの順序を厳守
             - メモリ効率が非常に高い
             - 大量データでも安定動作
             """)
@@ -202,64 +203,65 @@ def show_river_streaming_explanation():
             """)
             
             st.markdown("""
-            **アンサンブル学習**
-            - ARFRegressor (v2)：適応的ランダムフォレスト
-            - ADWINドリフト検出器内蔵
-            - 概念ドリフトへの自動適応
-            - 高精度予測を実現
+            **評価と監視**
+            - MAE/RMSEをリアルタイム追跡
+            - 時間ステップ別の精度評価
+            - ローリング窓での性能監視
+            - ADWINによるドリフト検出
             """)
     
     
     # 学習プロセス
     with st.expander("📚 学習プロセス", expanded=False):
         st.markdown("""
-        ### ストリーミング学習の実装
+        ### 遅延フィードバック学習の実装
         
-        **GitHub Actionsで自動学習（新実装）**
-        1. **データ収集時に自動実行**
-           - 1時間ごと（または設定したスケジュール）にデータ収集
-           - 収集後、3時間前のデータで自動的に学習
-           - 実測値が揃っているデータのみ使用
+        **ストリーム学習の正しい実装**
+        1. **データ収集時に予測を実行**
+           - 10分ごとにデータ収集（GitHub Actions）
+           - 収集したデータで即座に予測
+           - 予測結果をpredictions/に保存
         
-        2. **完全なストリーミング処理**
+        2. **遅延学習の実行**
            ```python
-           # streaming_train.pyの処理
-           # 1. 最新データを取得
-           latest_data = get_latest_data()
+           # collect_data.pyでの予測
+           data = collect_latest_data()
+           predictions = predictor.predict_one(data)
+           storage.save_predictions(time, features, predictions)
            
-           # 2. 3時間前のデータを探す（実測値が揃っている）
-           past_data = find_data_3_hours_ago()
-           future_data = get_next_18_points(past_data)
+           # streaming_train_with_diagnostics.pyでの学習
+           # 1. 現在のデータを取得
+           current_data = get_latest_data()
            
-           # 3. 予測を実行
-           prediction = predictor.predict_one(past_data)
+           # 2. 過去の予測を検索（許容誤差5分）
+           past_predictions = storage.get_predictions_for_learning(
+               current_time, tolerance_minutes=5
+           )
            
-           # 4. 実測値で学習（1件ずつ）
-           predictor.learn_one(past_data, future_data)
-           
-           # 5. モデルを保存・GitHubにコミット
-           predictor.save_model()
+           # 3. 予測と実測値で学習
+           for features, prediction in past_predictions:
+               predictor.learn_one(features, actual_value)
            ```
         
         3. **Streamlit.ioとの連携**
            - Streamlit.ioは表示専用（読み取り専用）
            - 最新の学習済みモデルを自動的に読み込み
-           - ユーザーはリアルタイムでモデルを切り替え可能
+           - data_timestamp.pyの更新で自動リロード
         
-        ### 学習データの流れ
+        ### データフロー
         ```
-        10:03 データ収集 → 10:00のデータを保存
+        10:10 データ収集 → 予測実行 → 予測を保存
                ↓
-        13:03 学習実行 → 10:00のデータで学習
-               ↓        （13:00までの実測値を使用）
-        GitHubに保存 → Streamlit.ioで利用
+        10:20 学習実行 → 10:10の予測を検索
+               ↓         実測値(10:20)で学習
+        モデル更新 → GitHubに保存
         ```
         
-        ### モデルの永続化
-        - `models/river_streaming_model_v2.pkl`として保存
-        - 学習履歴、遅延推定パラメータも保存
-        - MAE/RMSEメトリクス、ドリフト検出履歴も保存
-        - GitHub Actionsで自動的にコミット・プッシュ
+        ### 予測の保存と管理
+        - predictions/YYYYMMDD/HH_predictions.json
+        - 時刻、特徴量、予測値を保存
+        - 3日以上古いファイルは自動削除
+        - 高速な時刻ベース検索
         """)
     
     # 使用される特徴量
@@ -269,20 +271,21 @@ def show_river_streaming_explanation():
         
         with col1:
             st.markdown("""
-            **基本情報（現在値のみ）**
+            **基本情報**
             - water_level: 現在水位
             - dam_outflow: ダム放流量
             - dam_inflow: ダム流入量
             - storage_rate: 貯水率
-            - rainfall: 降雨量
+            - rainfall_1h: 1時間降雨量
             """)
         
         with col2:
             st.markdown("""
-            **動的特徴**
-            - estimated_delay: 推定遅延時間
-            - level_change_rate: 水位変化率
-            - hour: 時刻
+            **時系列特徴**
+            - water_level_diff: 水位変化量
+            - outflow_diff: 放流量変化
+            - hour: 時刻（0-23）
+            - day_of_week: 曜日（0-6）
             - is_night: 夜間フラグ
             """)
     
@@ -331,13 +334,13 @@ def show_model_comparison():
             "⭐⭐⭐⭐ 高い"
         ],
         "Riverストリーミング予測": [
-            "機械学習（アンサンブル）",
-            "⭐⭐ 低い",
-            "⭐⭐⭐⭐⭐ 向上する",
+            "機械学習（ARFRegressor）",
+            "⭐⭐ 低い→学習で向上",
+            "⭐⭐⭐⭐⭐ 継続的に向上",
             "⭐⭐⭐⭐⭐ 適応的",
             "⭐⭐ 低い",
             "⭐⭐⭐⭐⭐ 非常に高速",
-            "⭐⭐⭐⭐ 少ない",
+            "⭐⭐⭐⭐⭐ 極めて少ない",
             "⭐⭐⭐ 中程度"
         ]
     }
@@ -391,15 +394,17 @@ def show_model_comparison():
         - ✅ ARFRegressorによる高精度予測
         - ✅ ADWINドリフト検出器の実装
         - ✅ MAE/RMSEのリアルタイム追跡
-        - ✅ 仕様書準拠のパイプライン構築
-        - ✅ **GitHub Actionsでの自動学習実装**
+        - ✅ **遅延フィードバック学習の実装**
+        - ✅ **予測結果の保存と管理**
+        - ✅ **プログレッシブ検証の実装**
+        - ✅ **時間ステップ別精度評価**
         
         **システム全体**
-        - ✅ モデル再初期化機能
-        - ✅ 学習データクリア機能
-        - ✅ モデル動作状態の可視化
-        - ✅ システム診断情報の表示
-        - ✅ **Streamlit.ioの制約に対応した設計**
+        - ✅ 真のストリーム学習の実現
+        - ✅ 学習プロセス診断機能
+        - ✅ AI学習結果の詳細表示
+        - ✅ 予測統計とエラー分析
+        - ✅ **10分間隔での自動実行**
         
         ### 今後の機能拡張
         
