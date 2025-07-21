@@ -66,8 +66,6 @@ def main():
     
     # 現在の利用可能状況を表示
     with st.sidebar:
-        st.markdown("# 厚東川AI氾濫監視システム")
-        st.markdown("---")
         st.markdown("### 📊 モデル利用可能状況")
         st.markdown(f"エキスパートルール: {'✅' if EXPERT_AVAILABLE else '❌'}")
         st.markdown(f"Riverストリーミング予測: {'✅' if STREAMING_AVAILABLE else '❌'}")

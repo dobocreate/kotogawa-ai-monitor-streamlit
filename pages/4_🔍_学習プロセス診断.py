@@ -364,8 +364,6 @@ with tab3:
 
 # サイドバーに簡易ステータス表示
 with st.sidebar:
-    st.markdown("# 厚東川AI氾濫監視システム")
-    st.markdown("---")
     st.markdown("### 🔍 診断ステータス")
     
     latest = load_latest_diagnostics()

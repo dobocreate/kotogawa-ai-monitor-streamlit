@@ -2663,8 +2663,6 @@ def main():
     monitor = KotogawaMonitor()
     
     # サイドバー設定
-    st.sidebar.markdown("# 厚東川AI氾濫監視システム")
-    st.sidebar.markdown("---")
     
     # 更新設定
     with st.sidebar.expander("更新設定", expanded=True):

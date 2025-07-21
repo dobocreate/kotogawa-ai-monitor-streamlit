@@ -671,8 +671,6 @@ else:
 
 # サイドバー情報
 with st.sidebar:
-    st.markdown("# 厚東川AI氾濫監視システム")
-    st.markdown("---")
     st.markdown("### 📊 学習状況")
     
     if model_info:
