@@ -28,21 +28,22 @@ st.set_page_config(
 st.markdown("""
 <style>
     /* サイドバーのページナビゲーションボタンのフォントサイズを大きく */
-    [data-testid="stSidebar"] a[href^="/"] {
-        font-size: 18px !important;
-        font-weight: 500 !important;
-        padding: 0.75rem 1rem !important;
-    }
-    
-    /* サイドバーのページナビゲーションボタンのアイコンも大きく */
-    [data-testid="stSidebar"] a[href^="/"] span {
-        font-size: 20px !important;
-    }
-    
-    /* サイドバーのページナビゲーションリンクのスタイル調整 */
     [data-testid="stSidebar"] [data-testid="stSidebarNav"] a {
         font-size: 18px !important;
         font-weight: 500 !important;
+        padding: 0.75rem 1rem !important;
+        line-height: 1.5 !important;
+    }
+    
+    /* サイドバーのページナビゲーションボタンのテキスト */
+    [data-testid="stSidebar"] [data-testid="stSidebarNav"] a span {
+        font-size: 18px !important;
+    }
+    
+    /* サイドバーのページナビゲーションボタンのアイコン */
+    [data-testid="stSidebar"] [data-testid="stSidebarNav"] a [data-testid="stMarkdownContainer"] p {
+        font-size: 20px !important;
+        margin-right: 0.5rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
