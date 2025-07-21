@@ -23,6 +23,7 @@ from river import (
     linear_model,
     optim
 )
+from river.stats import Mean
 
 
 class DynamicDelayEstimator:
@@ -155,11 +156,9 @@ class RiverStreamingPredictor:
     def _build_pipeline(self):
         """仕様書準拠のパイプライン構築"""
         # 特徴量エンジニアリングパイプライン
-        # River 0.21.0ではLaggerが利用できないため、シンプルな構成に変更
+        # River 0.22.0対応の構成
         self.pipeline = compose.Pipeline(
-            # 欠測値補完
-            pp.StatImputer(strategy='mean'),
-            # 標準化
+            # 標準化のみ（StatImputerは削除）
             pp.StandardScaler(),
             # ARFRegressor（仕様書準拠）
             forest.ARFRegressor(
