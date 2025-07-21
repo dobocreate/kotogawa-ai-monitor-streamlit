@@ -1,6 +1,6 @@
 """
 厚東川水位のストリーミング予測モジュール（仕様書準拠版）
-River 0.21.0対応 - ARFRegressorとADWINドリフト検出実装
+River 0.22.0対応 - ARFRegressorとADWINドリフト検出実装
 """
 
 import numpy as np
