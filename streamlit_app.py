@@ -191,7 +191,7 @@ class KotogawaMonitor:
         }
     
     def load_latest_data(_self) -> Optional[Dict[str, Any]]:
-        """最新データを読み込む（ファイル更新時刻ベースのキャッシュ）"""
+        """最新データを読み込む（タイムスタンプベースのキャッシュ）"""
         latest_file = _self.data_dir / "latest.json"
         
         if not latest_file.exists():
@@ -199,16 +199,20 @@ class KotogawaMonitor:
             return None
         
         try:
-            # ファイル更新時刻をキャッシュキーとして使用
-            file_mtime = latest_file.stat().st_mtime
-            return _self._load_latest_data_cached(str(latest_file), file_mtime)
+            # まずファイル内容を読み込んでタイムスタンプを取得
+            with open(latest_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # データのタイムスタンプをキャッシュキーとして使用（Streamlit.io対応）
+            cache_key = data.get('timestamp', str(latest_file.stat().st_mtime))
+            return _self._load_latest_data_cached(str(latest_file), cache_key)
         except Exception as e:
             st.error(f"× データ読み込みエラー: {e}")
             return None
     
-    @st.cache_data(ttl=300)  # ファイル更新時刻が変わるまでキャッシュ
-    def _load_latest_data_cached(_self, file_path: str, file_mtime: float) -> Optional[Dict[str, Any]]:
-        """ファイル更新時刻をキーとするキャッシュされたデータ読み込み"""
+    @st.cache_data(ttl=60)  # 1分間キャッシュ（短縮してStreamlit.ioでの更新頻度を上げる）
+    def _load_latest_data_cached(_self, file_path: str, cache_key: str) -> Optional[Dict[str, Any]]:
+        """タイムスタンプをキーとするキャッシュされたデータ読み込み"""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -230,12 +234,15 @@ class KotogawaMonitor:
             return None
     
     def get_cache_key(self) -> str:
-        """キャッシュキー用の最新ファイル時刻を取得"""
+        """キャッシュキー用のデータタイムスタンプを取得"""
         try:
-            # latest.jsonの更新時刻を取得
+            # latest.jsonからタイムスタンプを取得
             latest_file = self.data_dir / "latest.json"
             if latest_file.exists():
-                return str(latest_file.stat().st_mtime)
+                with open(latest_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    # データのタイムスタンプをキャッシュキーとして使用
+                    return data.get('timestamp', str(latest_file.stat().st_mtime))
             return "no_file"
         except Exception:
             return "error"
