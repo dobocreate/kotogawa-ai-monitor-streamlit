@@ -48,9 +48,9 @@ except ImportError:
             AI_PREDICTION_AVAILABLE = True
         except ImportError:
             AI_PREDICTION_AVAILABLE = False
-            print("エキスパートルール予測が利用できません。")
+            print("エキスパート物理ルール予測モデルが利用できません。")
 
-# Riverストリーミング予測モジュールのインポート
+# リアルタイムAI学習モデルモジュールのインポート
 try:
     from scripts.river_streaming_prediction import RiverStreamingPredictor
     RIVER_LEARNING_AVAILABLE = True
@@ -58,7 +58,7 @@ try:
 except ImportError:
     RIVER_STREAMING_AVAILABLE = False
     RIVER_LEARNING_AVAILABLE = False
-    print("Riverストリーミング予測が利用できません。")
+    print("リアルタイムAI学習モデルが利用できません。")
 
 # River import helperのインポート
 get_river_predictor = None
@@ -1487,18 +1487,18 @@ class KotogawaMonitor:
                     if 'predictor' not in st.session_state:
                         # フォールバック（念のため）
                         st.session_state.predictor = AdvancedRiverLevelPredictor()
-                        st.session_state.last_prediction_model = "エキスパートルール予測"
+                        st.session_state.last_prediction_model = "エキスパート物理ルール予測モデル"
                     
                     predictor = st.session_state.predictor
                     
                     # 現在選択されているモデルを取得
-                    selected_model = st.session_state.get('prediction_model', 'エキスパートルール予測')
+                    selected_model = st.session_state.get('prediction_model', 'エキスパート物理ルール予測モデル')
                     
                     # 予測実行（履歴データが十分にある場合）
                     if len(history_data) >= 18:  # 3時間分のデータ
                         # ストリーミングモデルの場合は最新データのみ使用
-                        if selected_model == "Riverストリーミング予測" and hasattr(predictor, 'predict_one'):
-                            # ストリーミング予測
+                        if selected_model == "リアルタイムAI学習モデル" and hasattr(predictor, 'predict_one'):
+                            # リアルタイムAI学習モデル
                             latest_data = history_data[-1] if history_data else None
                             if latest_data:
                                 predictions = predictor.predict_one(latest_data)
@@ -1512,9 +1512,9 @@ class KotogawaMonitor:
                             # デバッグ情報を保存
                             st.session_state['prediction_method_used'] = 'predict (batch)'
                         
-                        # River予測でエラーの場合
-                        if predictions is None and selected_model == "Riverストリーミング予測":
-                            error_msg = f"Riverストリーミング予測でエラーが発生しました。"
+                        # リアルタイムAI学習でエラーの場合
+                        if predictions is None and selected_model == "リアルタイムAI学習モデル":
+                            error_msg = f"リアルタイムAI学習モデルでエラーが発生しました。"
                             st.session_state['ai_prediction_error'] = error_msg
                         
                         if predictions:
@@ -1529,7 +1529,7 @@ class KotogawaMonitor:
                             
                             # AI予測線を追加（破線）
                             # モデル名を表示に含める
-                            model_name = "エキスパート" if selected_model == "エキスパートルール予測" else "River学習"
+                            model_name = "エキスパート" if selected_model == "エキスパート物理ルール予測モデル" else "River学習"
                             fig.add_trace(
                                 go.Scatter(
                                     x=pred_df['timestamp'],
@@ -1580,7 +1580,7 @@ class KotogawaMonitor:
                                             pred_time = past_pred_info['time']
                                             if (current_time - pred_time).total_seconds() >= 10800:  # 3時間以上経過
                                                 # 実測値と比較して評価
-                                                model_type = 'expert_rule' if past_pred_info['model'] == "エキスパートルール予測" else 'river_online'
+                                                model_type = 'expert_rule' if past_pred_info['model'] == "エキスパート物理ルール予測モデル" else 'river_online'
                                                 st.session_state.evaluator.evaluate_prediction(
                                                     past_pred_info['predictions'],
                                                     history_data,
@@ -2753,7 +2753,7 @@ def main():
             st.markdown("**AI予測設定**")
             prediction_model = st.radio(
                 "予測モデル",
-                ["エキスパートルール予測", "Riverストリーミング予測"],
+                ["エキスパート物理ルール予測モデル", "リアルタイムAI学習モデル"],
                 index=0,
                 help="予測モデルを選択してください"
             )
@@ -2767,7 +2767,7 @@ def main():
             # 現在の予測精度を表示
             if EVALUATION_AVAILABLE and 'evaluator' in st.session_state:
                 evaluator = st.session_state.evaluator
-                model_type = 'expert_rule' if prediction_model == "エキスパートルール予測" else 'river_online'
+                model_type = 'expert_rule' if prediction_model == "エキスパート物理ルール予測モデル" else 'river_online'
                 
                 if model_type in evaluator.evaluation_results:
                     latest = evaluator.evaluation_results[model_type].get('latest')
@@ -2793,8 +2793,8 @@ def main():
             # システム診断情報
             with st.expander("🔍 システム診断情報", expanded=False):
                 st.caption("**利用可能なモジュール:**")
-                st.caption(f"• エキスパートルール予測: {'✅' if AI_PREDICTION_AVAILABLE else '❌'}")
-                st.caption(f"• Riverストリーミング予測: {'✅' if RIVER_STREAMING_AVAILABLE else '❌'}")
+                st.caption(f"• エキスパート物理ルール予測モデル: {'✅' if AI_PREDICTION_AVAILABLE else '❌'}")
+                st.caption(f"• リアルタイムAI学習モデル: {'✅' if RIVER_STREAMING_AVAILABLE else '❌'}")
                 st.caption(f"• Riverオンライン学習: {'✅' if RIVER_LEARNING_AVAILABLE else '❌'}")
                 st.caption(f"• River import helper: {'✅' if get_river_predictor is not None else '❌'}")
                 st.caption(f"• 予測評価機能: {'✅' if EVALUATION_AVAILABLE else '❌'}")
@@ -2812,7 +2812,7 @@ def main():
                 actual_model_name = type(predictor).__name__
                 
                 # 期待されるモデルと実際のモデルを比較
-                expected_model = "RiverStreamingPredictor" if prediction_model == "Riverストリーミング予測" else "AdvancedRiverLevelPredictor"
+                expected_model = "RiverStreamingPredictor" if prediction_model == "リアルタイムAI学習モデル" else "AdvancedRiverLevelPredictor"
                 
                 if actual_model_name == expected_model:
                     st.success(f"✅ 実行中: {actual_model_name}")
@@ -2884,7 +2884,7 @@ def main():
             
             with col2:
                 # Riverモデルの場合は学習データもクリア可能
-                if prediction_model == "Riverストリーミング予測":
+                if prediction_model == "リアルタイムAI学習モデル":
                     if st.button("🗑️ 学習データをクリア", type="secondary", use_container_width=True):
                         try:
                             # モデルファイルを削除
@@ -3000,15 +3000,15 @@ def main():
     
     # AI予測モデルの初期化（データ読み込み後、表示前に実行）
     if AI_PREDICTION_AVAILABLE and history_data:
-        selected_model = st.session_state.get('prediction_model', 'エキスパートルール予測')
+        selected_model = st.session_state.get('prediction_model', 'エキスパート物理ルール予測モデル')
         
         # モデルが変更された場合またはモデルが存在しない場合は初期化
         if ('predictor' not in st.session_state or 
             st.session_state.get('last_prediction_model') != selected_model):
             
             try:
-                if selected_model == "Riverストリーミング予測" and RIVER_LEARNING_AVAILABLE:
-                    # River予測モデルを取得
+                if selected_model == "リアルタイムAI学習モデル" and RIVER_LEARNING_AVAILABLE:
+                    # リアルタイムAI学習モデルを取得
                     if get_river_predictor:
                         predictor_instance = get_river_predictor()
                         if predictor_instance:
@@ -3016,17 +3016,17 @@ def main():
                             st.session_state.last_prediction_model = selected_model
                             # Streamlit.ioでは学習しない（GitHub Actionsで学習済みモデルを使用）
                         else:
-                            raise Exception("River予測モデルの作成に失敗")
+                            raise Exception("リアルタイムAI学習モデルの作成に失敗")
                     else:
                         raise Exception("get_river_predictorが利用できません")
                 else:
-                    # エキスパートルール予測を使用
+                    # エキスパート物理ルール予測モデルを使用
                     st.session_state.predictor = AdvancedRiverLevelPredictor()
                     st.session_state.last_prediction_model = selected_model
             except Exception as e:
                 # エラー時はフォールバック
                 st.session_state.predictor = AdvancedRiverLevelPredictor()
-                st.session_state.last_prediction_model = "エキスパートルール予測"
+                st.session_state.last_prediction_model = "エキスパート物理ルール予測モデル"
                 if 'ai_prediction_error' not in st.session_state:
                     st.session_state.ai_prediction_error = str(e)
     

@@ -62,16 +62,16 @@ def main():
     st.markdown("厚東川水位予測システムで使用される2つのAIモデルについて詳しく説明します。")
     
     # タブで2つのモデルを切り替え
-    tab1, tab2, tab3 = st.tabs(["エキスパートルール予測", "Riverストリーミング予測", "モデル比較"])
+    tab1, tab2, tab3 = st.tabs(["エキスパート物理ルール予測モデル", "リアルタイムAI学習モデル", "モデル比較"])
     
     # 現在の利用可能状況を表示
     with st.sidebar:
         st.markdown("### 📊 モデル利用可能状況")
-        st.markdown(f"エキスパートルール: {'✅' if EXPERT_AVAILABLE else '❌'}")
-        st.markdown(f"Riverストリーミング予測: {'✅' if STREAMING_AVAILABLE else '❌'}")
+        st.markdown(f"エキスパート物理ルール予測モデル: {'✅' if EXPERT_AVAILABLE else '❌'}")
+        st.markdown(f"リアルタイムAI学習モデル: {'✅' if STREAMING_AVAILABLE else '❌'}")
         
         if STREAMING_AVAILABLE:
-            st.success("✅ Riverストリーミング予測が利用可能です")
+            st.success("✅ リアルタイムAI学習モデルが利用可能です")
             st.caption("動的遅延推定とストリーミング処理で高精度予測")
     
     with tab1:
@@ -84,11 +84,11 @@ def main():
         show_model_comparison()
 
 def show_expert_rule_explanation():
-    """エキスパートルール予測の解説"""
-    st.header("エキスパートルール予測")
+    """エキスパート物理ルール予測モデルの解説"""
+    st.header("エキスパート物理ルール予測モデル")
     
     st.markdown("""
-    エキスパートルール予測は、河川工学の専門知識と物理法則に基づいて設計された予測モデルです。
+    エキスパート物理ルール予測モデルは、河川工学の専門知識と物理法則に基づいて設計された予測モデルです。
     ダムと河川の関係性を詳細にモデル化し、高精度な予測を実現しています。
     """)
     
@@ -179,11 +179,11 @@ def show_expert_rule_explanation():
         """)
 
 def show_river_streaming_explanation():
-    """Riverストリーミング学習予測の解説"""
-    st.header("Riverストリーミング学習予測")
+    """リアルタイムAI学習モデルの解説"""
+    st.header("リアルタイムAI学習モデル")
     
     st.markdown("""
-    Riverストリーミング予測は、機械学習ライブラリ「River」を使用した適応型予測モデルです。
+    リアルタイムAI学習モデルは、機械学習ライブラリ「River」を使用した適応型予測モデルです。
     データから継続的に学習し、時間とともに予測精度を向上させます。
     
     **最新バージョン（v2）では真のストリーム学習を実装：**
@@ -195,7 +195,7 @@ def show_river_streaming_explanation():
     """)
     
     
-    # ストリーミング予測の特徴
+    # リアルタイムAI学習モデルの特徴
     with st.expander("🎯 主な特徴", expanded=True):
         col1, col2 = st.columns(2)
         
@@ -347,7 +347,7 @@ def show_model_comparison():
     
     comparison_data = {
         "特性": ["予測手法", "初期精度", "長期精度", "適応性", "解釈性", "計算速度", "メモリ使用量", "異常値耐性"],
-        "エキスパートルール": [
+        "エキスパート物理ルール予測モデル": [
             "物理法則＋専門知識",
             "⭐⭐⭐⭐⭐ 高い",
             "⭐⭐⭐⭐ 安定",
@@ -357,7 +357,7 @@ def show_model_comparison():
             "⭐⭐⭐⭐⭐ 少ない",
             "⭐⭐⭐⭐ 高い"
         ],
-        "Riverストリーミング予測": [
+        "リアルタイムAI学習モデル": [
             "機械学習（ARFRegressor）",
             "⭐⭐ 低い→学習で向上",
             "⭐⭐⭐⭐⭐ 継続的に向上",
@@ -379,7 +379,7 @@ def show_model_comparison():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.info("**エキスパートルール予測を選ぶべき場合**")
+        st.info("**エキスパート物理ルール予測モデルを選ぶべき場合**")
         st.markdown("""
         - システム導入直後で学習データが少ない
         - 予測の根拠を明確に説明する必要がある
@@ -389,7 +389,7 @@ def show_model_comparison():
         """)
     
     with col2:
-        st.info("**Riverストリーミング予測を選ぶべき場合**")
+        st.info("**リアルタイムAI学習モデルを選ぶべき場合**")
         st.markdown("""
         - 十分な過去データが蓄積されている
         - 地域特有のパターンを学習させたい
@@ -403,8 +403,8 @@ def show_model_comparison():
     st.success("""
     **両モデルの併用をお勧めします**
     
-    - エキスパートルール予測を主として使用し、安定した予測を確保
-    - Riverストリーミング予測を補助的に使用し、学習の進捗を確認
+    - エキスパート物理ルール予測モデルを主として使用し、安定した予測を確保
+    - リアルタイムAI学習モデルを補助的に使用し、学習の進捗を確認
     - 両モデルの予測が大きく異なる場合は、慎重な判断が必要
     - 時間の経過とともにRiverモデルの信頼性が向上することを期待
     """)
@@ -414,7 +414,7 @@ def show_model_comparison():
         st.markdown("""
         ### 実装済みの改良点
         
-        **Riverストリーミング予測**
+        **リアルタイムAI学習モデル**
         - ✅ ARFRegressorによる高精度予測
         - ✅ ADWINドリフト検出器の実装
         - ✅ MAE/RMSEのリアルタイム追跡
@@ -432,12 +432,12 @@ def show_model_comparison():
         
         ### 今後の機能拡張
         
-        **エキスパートルール予測**
+        **エキスパート物理ルール予測モデル**
         - 季節変動の考慮
         - 潮位の影響モデル化
         - より詳細な雨量予測の統合
         
-        **Riverストリーミング予測**
+        **リアルタイムAI学習モデル**
         - 深層学習モデルの統合
         - 不確実性の定量化
         - 異常検知機能の追加
