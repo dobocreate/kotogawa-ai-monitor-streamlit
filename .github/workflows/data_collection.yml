@@ -8,6 +8,9 @@ on:
     - cron: '3 * * * *'
   workflow_dispatch: # 手動実行も可能
 
+permissions:
+  contents: write  # リポジトリへの書き込み権限を付与
+
 jobs:
   collect-data:
     runs-on: ubuntu-latest
@@ -17,7 +20,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
         persist-credentials: true
         
     - name: Set up Python
@@ -49,8 +51,8 @@ jobs:
         
     - name: Configure git
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
         
     - name: Run data collection
       run: |
