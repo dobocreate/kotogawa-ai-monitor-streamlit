@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import sys
 import traceback
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 # プロジェクトルートをパスに追加
 sys.path.append(str(Path(__file__).parent.parent))

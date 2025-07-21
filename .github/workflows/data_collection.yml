@@ -84,7 +84,10 @@ jobs:
       run: |
         # 3時間前のデータで学習を試みる（実測値が揃っているため）
         echo "Attempting streaming learning with diagnostics..."
-        python scripts/streaming_train_with_diagnostics.py || echo "Learning skipped (no future data available yet)"
+        python scripts/streaming_train_with_diagnostics.py || {
+          echo "Learning process encountered an issue (exit code: $?)"
+          echo "Diagnostics may still have been saved"
+        }
         
     - name: Commit model updates and diagnostics
       run: |
