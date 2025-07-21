@@ -531,8 +531,7 @@ def streaming_learn_with_diagnostics():
         # 4. 将来データ確認
         has_future_data, future_data = check_future_data(latest_data, diagnostics)
         if not has_future_data:
-            print("将来データが不足しています")
-            return diagnostics
+            print("将来データが不足しています - 予測のみ実行します")
         
         # 5. モデル初期化
         predictor = initialize_model(diagnostics)
@@ -546,8 +545,14 @@ def streaming_learn_with_diagnostics():
             print(f"予測実行: 10分先 = {predictions[0]['level']:.2f}m")
         
         # 7. 学習実行
-        run_learning(predictor, latest_data, future_data, diagnostics)
-        print("学習完了")
+        if has_future_data and future_data:
+            run_learning(predictor, latest_data, future_data, diagnostics)
+            print("学習完了")
+        else:
+            print("学習をスキップ（将来データなし）")
+            # 学習関連のステップをスキップとしてマーク
+            for step_id in ["6.1_online_learning", "6.2_step_learning", "6.3_drift_detection", "6.4_error_handling"]:
+                diagnostics.update_step(step_id, StepStatus.SKIPPED, {"reason": "将来データが利用できません"})
         
         # 8. メトリクス更新
         update_metrics(predictor, diagnostics)

@@ -96,8 +96,8 @@ jobs:
           git push
         fi
         
-        # 診断結果のコミット
-        if [[ -n $(git status --porcelain diagnostics/) ]]; then
+        # 診断結果のコミット（ディレクトリが存在する場合のみ）
+        if [[ -d diagnostics/ ]] && [[ -n $(git status --porcelain diagnostics/) ]]; then
           git add diagnostics/
           git commit -m "🔍 Update learning diagnostics - $(date '+%Y-%m-%d %H:%M:%S UTC')"
           git pull --rebase origin master
