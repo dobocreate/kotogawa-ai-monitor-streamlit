@@ -4,7 +4,7 @@ River 0.22.0対応 - ARFRegressorとADWINドリフト検出実装
 """
 
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import deque
 from typing import Dict, List, Optional, Tuple
 import pickle
@@ -307,7 +307,7 @@ class RiverStreamingPredictor:
                 'considered_delay': round(estimated_delay, 1),
                 'mae_last_100': round(mae_value, 3) if mae_value else None,
                 'drift_detected': self.drift_count > 0,
-                'model_version': f'river-0.21.0-{datetime.now().strftime("%Y%m%dT%H%M")}'
+                'model_version': f'river-0.21.0-{datetime.now(timezone(timedelta(hours=9))).strftime("%Y%m%dT%H%M")}'
             })
         
         return predictions

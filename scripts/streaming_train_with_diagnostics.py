@@ -499,9 +499,11 @@ def save_model(predictor: RiverStreamingPredictor, diagnostics: LearningDiagnost
 
 def record_history(predictor: RiverStreamingPredictor, diagnostics: LearningDiagnostics):
     """学習履歴の記録"""
-    # 実行時刻の記録
+    # 実行時刻の記録（JST）
+    jst_offset = timedelta(hours=9)
+    jst_tz = timezone(jst_offset)
     diagnostics.update_step("9.1_time_record", StepStatus.SUCCESS, 
-                          {"execution_time": datetime.now().isoformat()})
+                          {"execution_time": datetime.now(jst_tz).isoformat()})
     
     # 処理データ数の記録
     diagnostics.update_step("9.2_data_count", StepStatus.SUCCESS, 
@@ -556,7 +558,10 @@ def generate_diagnostics_info(predictor: RiverStreamingPredictor, diagnostics: L
 
 def streaming_learn_with_diagnostics():
     """診断機能付きストリーミング学習のメイン関数"""
-    print(f"[{datetime.now()}] 診断機能付きストリーミング学習を開始")
+    # JST時刻で開始を記録
+    jst_offset = timedelta(hours=9)
+    jst_tz = timezone(jst_offset)
+    print(f"[{datetime.now(jst_tz)}] 診断機能付きストリーミング学習を開始")
     
     # 診断開始
     diagnostics = LearningDiagnostics()

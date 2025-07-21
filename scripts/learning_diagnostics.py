@@ -5,7 +5,7 @@
 
 import json
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 import traceback
 from enum import Enum
@@ -29,7 +29,10 @@ class LearningDiagnostics:
         
     def start_diagnostics(self):
         """診断の開始"""
-        self.start_time = datetime.now()
+        # JSTで記録
+        jst_offset = timedelta(hours=9)
+        jst_tz = timezone(jst_offset)
+        self.start_time = datetime.now(jst_tz)
         # ステップを初期化（status_textも含める）
         def create_step(name: str, status: StepStatus = StepStatus.PENDING):
             return {
@@ -105,7 +108,10 @@ class LearningDiagnostics:
         if step_id in self.steps:
             self.steps[step_id]["status"] = status
             self.steps[step_id]["status_text"] = status.value  # JSON用にテキストも保存
-            self.steps[step_id]["timestamp"] = datetime.now().isoformat()
+            # JSTで記録
+            jst_offset = timedelta(hours=9)
+            jst_tz = timezone(jst_offset)
+            self.steps[step_id]["timestamp"] = datetime.now(jst_tz).isoformat()
             
             if details:
                 self.steps[step_id]["details"].update(details)
@@ -119,7 +125,10 @@ class LearningDiagnostics:
     
     def complete_diagnostics(self):
         """診断の完了"""
-        self.end_time = datetime.now()
+        # JSTで記録
+        jst_offset = timedelta(hours=9)
+        jst_tz = timezone(jst_offset)
+        self.end_time = datetime.now(jst_tz)
         
     def get_summary(self) -> Dict:
         """診断結果のサマリーを取得"""
@@ -308,7 +317,10 @@ def check_data_availability(diagnostics: LearningDiagnostics) -> Tuple[bool, Opt
                 return False, None
         
         # latest.jsonがない場合は従来の方法も試す
-        today = datetime.now().strftime('%Y%m%d')
+        # JSTで今日の日付を取得
+        jst_offset = timedelta(hours=9)
+        jst_tz = timezone(jst_offset)
+        today = datetime.now(jst_tz).strftime('%Y%m%d')
         today_file = data_dir / f'{today}.json'
         
         if not today_file.exists():

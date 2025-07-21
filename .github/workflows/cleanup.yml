@@ -61,10 +61,10 @@ jobs:
       if: steps.changes.outputs.has_changes == 'true'
       run: |
         git add -A
-        git commit -m "🧹 Cleanup old data - removed ${{ steps.changes.outputs.deleted_count }} files ($(date '+%Y-%m-%d'))"
+        git commit -m "🧹 Cleanup old data - removed ${{ steps.changes.outputs.deleted_count }} files ($(TZ='Asia/Tokyo' date '+%Y-%m-%d'))"
         git push
         
     - name: Log cleanup summary
       run: |
-        echo "Data cleanup completed at $(date)"
+        echo "Data cleanup completed at $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')"
         echo "Files processed: ${{ steps.changes.outputs.deleted_count }}"

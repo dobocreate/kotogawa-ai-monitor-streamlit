@@ -4,7 +4,7 @@
 """
 
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 
 
@@ -63,7 +63,7 @@ class ImprovedRiverLevelPredictor:
             water_levels, 
             outflows,
             rainfalls,
-            timestamps[-1] if timestamps else datetime.now().isoformat()
+            timestamps[-1] if timestamps else datetime.now(timezone(timedelta(hours=9))).isoformat()
         )
         
         return predictions
@@ -90,7 +90,9 @@ class ImprovedRiverLevelPredictor:
         try:
             current_time = datetime.fromisoformat(last_timestamp.replace('Z', '+00:00'))
         except:
-            current_time = datetime.now()
+            # JSTで現在時刻を取得
+            jst_tz = timezone(timedelta(hours=9))
+            current_time = datetime.now(jst_tz)
             
         # 基準となる水位
         base_level = water_levels[-1]

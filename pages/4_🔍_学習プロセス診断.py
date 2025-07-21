@@ -6,10 +6,16 @@
 import streamlit as st
 from pathlib import Path
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    # Python 3.8以前の場合
+    from pytz import timezone as pytz_timezone
+    ZoneInfo = lambda x: pytz_timezone(x)
 
 # ページ設定
 st.set_page_config(
@@ -20,6 +26,25 @@ st.set_page_config(
 
 st.title("🔍 学習プロセス診断")
 st.markdown("モデルの学習プロセスを詳細に分析し、問題の特定を支援します。")
+
+
+def to_jst(dt_str):
+    """ISO形式の日時文字列を日本時間に変換"""
+    if not dt_str:
+        return None
+    
+    dt = datetime.fromisoformat(dt_str)
+    
+    # タイムゾーンがない場合はUTCとして扱う
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    
+    # JSTに変換
+    jst_offset = timedelta(hours=9)
+    jst_tz = timezone(jst_offset)
+    dt_jst = dt.astimezone(jst_tz)
+    
+    return dt_jst
 
 
 def load_latest_diagnostics():
@@ -167,7 +192,7 @@ def display_performance_trends():
     
     for diag in all_diagnostics[-20:]:  # 最新20件
         summary = diag['summary']
-        timestamps.append(datetime.fromisoformat(summary['start_time']))
+        timestamps.append(to_jst(summary['start_time']))
         
         total = summary['total_steps']
         success = summary['status_counts'].get('✅ 成功', 0)
@@ -248,8 +273,8 @@ with tab1:
         st.warning("診断結果がありません。学習が実行されるのを待つか、手動で診断を実行してください。")
     else:
         # 実行時刻
-        start_time = datetime.fromisoformat(diagnostics['summary']['start_time'])
-        st.info(f"最終実行: {start_time.strftime('%Y年%m月%d日 %H:%M:%S')}")
+        start_time = to_jst(diagnostics['summary']['start_time'])
+        st.info(f"最終実行: {start_time.strftime('%Y年%m月%d日 %H:%M:%S')} (JST)")
         
         # サマリー表示
         display_diagnostics_summary(diagnostics)
@@ -279,7 +304,7 @@ with tab2:
         for diag in all_diagnostics[:50]:  # 最新50件
             summary = diag['summary']
             history_data.append({
-                '実行時刻': datetime.fromisoformat(summary['start_time']).strftime('%Y-%m-%d %H:%M'),
+                '実行時刻': to_jst(summary['start_time']).strftime('%Y-%m-%d %H:%M'),
                 'ステータス': summary['overall_status'],
                 '成功率': f"{summary['status_counts'].get('✅ 成功', 0) / summary['total_steps'] * 100:.1f}%",
                 '実行時間': f"{summary.get('duration_seconds', 0):.1f}秒" if summary.get('duration_seconds') else "N/A",
@@ -303,8 +328,11 @@ with tab3:
     st.markdown("### 自動実行スケジュール")
     st.info("学習と診断は、GitHub Actionsにより1時間ごとに自動実行されます。")
     
-    next_run = datetime.now().replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    st.write(f"次回実行予定: {next_run.strftime('%Y年%m月%d日 %H:%M')}")
+    # JSTで次回実行時刻を計算
+    jst_offset = timedelta(hours=9)
+    jst_tz = timezone(jst_offset)
+    next_run = datetime.now(jst_tz).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    st.write(f"次回実行予定: {next_run.strftime('%Y年%m月%d日 %H:%M')} (JST)")
 
 
 # サイドバーに簡易ステータス表示
@@ -334,8 +362,10 @@ with st.sidebar:
         st.metric("警告ステップ", summary['status_counts'].get('⚠️ 警告', 0))
         
         # 最終更新
-        start_time = datetime.fromisoformat(summary['start_time'])
-        elapsed = datetime.now() - start_time
+        start_time = to_jst(summary['start_time'])
+        jst_offset = timedelta(hours=9)
+        jst_tz = timezone(jst_offset)
+        elapsed = datetime.now(jst_tz) - start_time
         
         if elapsed.total_seconds() < 3600:
             time_str = f"{int(elapsed.total_seconds() / 60)}分前"

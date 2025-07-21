@@ -5,7 +5,7 @@
 
 import json
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import sys
 
 # プロジェクトルートをパスに追加
@@ -30,7 +30,10 @@ def get_latest_data():
             pass
     
     # 次に今日のファイルを読み込み（フォールバック）
-    today = datetime.now().strftime('%Y%m%d')
+    # JSTで今日の日付を取得
+    jst_offset = timedelta(hours=9)
+    jst_tz = timezone(jst_offset)
+    today = datetime.now(jst_tz).strftime('%Y%m%d')
     today_file = data_dir / f'{today}.json'
     
     if not today_file.exists():
@@ -50,7 +53,10 @@ def get_latest_data():
 
 def streaming_learn():
     """新しいデータでストリーミング学習を実行"""
-    print(f"[{datetime.now()}] ストリーミング学習を開始")
+    # JST時刻で開始を記録
+    jst_offset = timedelta(hours=9)
+    jst_tz = timezone(jst_offset)
+    print(f"[{datetime.now(jst_tz)}] ストリーミング学習を開始")
     
     # モデルの読み込み（既存のモデルがあれば継続）
     predictor = RiverStreamingPredictor()
@@ -77,8 +83,10 @@ def streaming_learn():
     all_recent_data = []
     
     # 今日と昨日のデータを履歴ディレクトリから読み込み
+    jst_offset = timedelta(hours=9)
+    jst_tz = timezone(jst_offset)
     for days_ago in range(2):
-        date = datetime.now()
+        date = datetime.now(jst_tz)
         if days_ago > 0:
             date = date - timedelta(days=days_ago)
         

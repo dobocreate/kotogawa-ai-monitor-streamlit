@@ -75,7 +75,7 @@ jobs:
       if: steps.changes.outputs.has_changes == 'true'
       run: |
         git add data/
-        git commit -m "📊 Update monitoring data - $(date '+%Y-%m-%d %H:%M:%S UTC')"
+        git commit -m "📊 Update monitoring data - $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')"
         git pull --rebase origin master
         git push
         
@@ -94,7 +94,7 @@ jobs:
         # モデル更新のコミット
         if [[ -n $(git status --porcelain models/) ]]; then
           git add models/
-          git commit -m "🤖 Update River model (streaming) - $(date '+%Y-%m-%d %H:%M:%S UTC')"
+          git commit -m "🤖 Update River model (streaming) - $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')"
           git pull --rebase origin master
           git push
         fi
@@ -102,7 +102,7 @@ jobs:
         # 診断結果のコミット（ディレクトリが存在する場合のみ）
         if [[ -d diagnostics/ ]] && [[ -n $(git status --porcelain diagnostics/) ]]; then
           git add diagnostics/
-          git commit -m "🔍 Update learning diagnostics - $(date '+%Y-%m-%d %H:%M:%S UTC')"
+          git commit -m "🔍 Update learning diagnostics - $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')"
           git pull --rebase origin master
           git push
         fi
