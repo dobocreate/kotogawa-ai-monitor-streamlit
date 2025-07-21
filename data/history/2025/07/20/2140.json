@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-07-21T08:25:55.048198+09:00",
-  "data_time": "2025-07-21T08:20:00+09:00",
+  "timestamp": "2025-07-20T21:49:58.987288+09:00",
+  "data_time": "2025-07-20T21:40:00+09:00",
   "dam": {
-    "water_level": 37.36,
-    "storage_rate": 92.9,
-    "inflow": 4.29,
-    "outflow": 3.34,
+    "water_level": 37.34,
+    "storage_rate": 92.7,
+    "inflow": 5.7,
+    "outflow": 3.33,
     "storage_change": null
   },
   "river": {
@@ -20,30 +20,26 @@
   },
   "weather": {
     "today": {
-      "weather_code": "101",
-      "weather_text": "晴れ　時々　くもり　所により　昼過ぎ　から　夜のはじめ頃　雨　で　雷を伴う",
-      "temp_max": 33,
-      "temp_min": 33,
+      "weather_code": "100",
+      "weather_text": "晴れ　所により　夜のはじめ頃　まで　雨",
+      "temp_max": null,
+      "temp_min": null,
       "precipitation_probability": [
-        0,
-        10,
         10
       ],
       "precipitation_times": [
-        "06時",
-        "12時",
         "18時"
       ]
     },
     "tomorrow": {
-      "weather_code": "100",
-      "weather_text": "晴れ",
-      "temp_max": 33,
-      "temp_min": 27,
+      "weather_code": "110",
+      "weather_text": "晴れ　昼過ぎ　から　時々　くもり　所により　昼過ぎ　から　夜のはじめ頃　雨　で　雷を伴う",
+      "temp_max": null,
+      "temp_min": null,
       "precipitation_probability": [
         0,
-        0,
         10,
+        20,
         10
       ],
       "precipitation_times": [
@@ -57,15 +53,15 @@
       "weather_code": "101",
       "weather_text": "晴れ時々くもり",
       "temp_max": 33,
-      "temp_min": 26,
+      "temp_min": 27,
       "precipitation_probability": [
-        10
+        20
       ],
       "precipitation_times": [
         "日中"
       ]
     },
-    "update_time": "2025-07-21T05:00:00+09:00",
+    "update_time": "2025-07-20T17:00:00+09:00",
     "weekly_forecast": [
       {
         "date": "2025-07-21",
@@ -135,36 +131,10 @@
   "precipitation_intensity": {
     "observation": [
       {
-        "datetime": "2025-07-21T08:02:00+09:00",
+        "datetime": "2025-07-20T21:04:00+09:00",
         "intensity": 0.0
       }
     ],
-    "forecast": [
-      {
-        "datetime": "2025-07-21T08:03:00+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-21T08:04:00+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-21T08:05:00+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-21T09:00:00+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-21T09:01:00+09:00",
-        "intensity": 0.0
-      },
-      {
-        "datetime": "2025-07-21T09:02:00+09:00",
-        "intensity": 0.0
-      }
-    ],
-    "update_time": "2025-07-21T08:25:55.048052+09:00"
+    "update_time": "2025-07-20T21:49:58.987112+09:00"
   }
 }
