@@ -1,0 +1,193 @@
+{
+  "base_time": "2025-07-22T05:40:00+09:00",
+  "features": {
+    "timestamp": "2025-07-22T05:40:00+09:00",
+    "water_level": 2.75,
+    "dam_outflow": 3.34,
+    "rainfall": 0,
+    "elapsed_min": 0.0
+  },
+  "predictions": [
+    {
+      "datetime": "2025-07-22T05:50:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T06:00:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T06:10:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T06:20:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T06:30:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T06:40:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T06:50:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T07:00:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T07:10:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T07:20:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T07:30:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T07:40:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T07:50:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T08:00:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T08:10:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T08:20:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T08:30:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    },
+    {
+      "datetime": "2025-07-22T08:40:00+09:00",
+      "level": 2.75,
+      "confidence": 0.5,
+      "model_type": "river_streaming_v2",
+      "considered_delay": 90,
+      "mae_last_100": null,
+      "drift_detected": false,
+      "model_version": "river-0.21.0-20250722T0552"
+    }
+  ],
+  "created_at": "2025-07-22T05:52:05.238919+09:00"
+}
