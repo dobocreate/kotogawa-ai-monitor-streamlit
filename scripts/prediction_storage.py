@@ -14,7 +14,9 @@ class PredictionStorage:
     """予測結果の保存・管理クラス"""
     
     def __init__(self, storage_dir: str = "predictions"):
-        self.storage_dir = Path(storage_dir)
+        # スクリプトディレクトリの親ディレクトリを基準にする
+        base_dir = Path(__file__).parent.parent
+        self.storage_dir = base_dir / storage_dir
         self.storage_dir.mkdir(exist_ok=True)
         self.jst_tz = timezone(timedelta(hours=9))
         
@@ -73,23 +75,31 @@ class PredictionStorage:
         target_dt = datetime.fromisoformat(target_time)
         
         try:
-            # 3時間前から現在までの予測ファイルを探索
-            for hours_ago in range(0, 4):  # 0〜3時間前
-                check_dt = target_dt - timedelta(hours=hours_ago)
+            # 10分前から3時間前までの予測ファイルを探索（10分前のデータが現在を予測している）
+            for minutes_ago in range(10, 181, 10):  # 10分〜180分前を10分刻みで
+                check_dt = target_dt - timedelta(minutes=minutes_ago)
                 date_dir = self.storage_dir / check_dt.strftime("%Y%m%d")
                 
                 if not date_dir.exists():
                     continue
                     
-                # その日の予測ファイルをチェック
-                for pred_file in sorted(date_dir.glob("pred_*.json"), reverse=True):
+                # その時刻付近の予測ファイルをチェック
+                # ファイル名: pred_YYYYMMDD_HHMMSS.json (SSは00固定)
+                for minute_offset in range(-5, 6):  # ±5分の範囲で探す
+                    file_dt = check_dt + timedelta(minutes=minute_offset)
+                    filename = f"pred_{file_dt.strftime('%Y%m%d_%H%M00')}.json"
+                    pred_file = date_dir / filename
+                    
+                    if not pred_file.exists():
+                        continue
+                        
                     try:
                         with open(pred_file, 'r', encoding='utf-8') as f:
                             pred_data = json.load(f)
                             
                         # 各予測結果をチェック
                         for prediction in pred_data['predictions']:
-                            pred_time = datetime.fromisoformat(prediction['time'])
+                            pred_time = datetime.fromisoformat(prediction['datetime'])
                             
                             # 時刻が許容範囲内か確認
                             time_diff = abs((pred_time - target_dt).total_seconds() / 60)
