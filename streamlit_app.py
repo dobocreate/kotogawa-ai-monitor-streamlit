@@ -2982,12 +2982,7 @@ def main():
                         if predictor_instance:
                             st.session_state.predictor = predictor_instance
                             st.session_state.last_prediction_model = selected_model
-                            # ストリーミングモデルの場合の学習
-                            if hasattr(predictor_instance, 'learn_one') and len(history_data) >= 18:
-                                for i in range(min(10, len(history_data) - 18)):  # 最初の10個で学習
-                                    current_data = history_data[i]
-                                    future_data = history_data[i+1:i+19]
-                                    predictor_instance.learn_one(current_data, future_data)
+                            # Streamlit.ioでは学習しない（GitHub Actionsで学習済みモデルを使用）
                         else:
                             raise Exception("River予測モデルの作成に失敗")
                     else:

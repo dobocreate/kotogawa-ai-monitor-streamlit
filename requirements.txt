@@ -7,5 +7,5 @@ lxml>=4.9.3
 python-dateutil>=2.8.2
 selenium==4.15.0
 streamlit-autorefresh>=1.0.0
-river>=0.21.0
+river>=0.22.0
 numpy>=1.24.0

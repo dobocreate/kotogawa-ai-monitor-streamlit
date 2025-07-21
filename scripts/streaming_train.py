@@ -50,6 +50,14 @@ def streaming_learn():
     
     print(f"最新データ: {latest_data.get('data_time', 'unknown')}")
     
+    # 既に学習済みかチェック
+    if hasattr(predictor, '_processed_timestamps'):
+        if latest_data.get('data_time') in predictor._processed_timestamps:
+            print(f"このデータは既に学習済みです: {latest_data.get('data_time')}")
+            return
+    else:
+        predictor._processed_timestamps = set()
+    
     # 将来の実測値を確認するため、過去3時間分のデータを読み込み
     data_dir = Path('data')
     all_recent_data = []
