@@ -179,10 +179,32 @@ class LearningDiagnostics:
         if self.end_time:
             duration = (self.end_time - self.start_time).total_seconds()
         
+        # タイムゾーン情報を確実に含めるため、明示的にフォーマット
+        start_time_str = None
+        end_time_str = None
+        
+        if self.start_time:
+            # Python 3.8以前でもタイムゾーン情報を含めるようにする
+            if self.start_time.tzinfo:
+                start_time_str = self.start_time.isoformat()
+            else:
+                # タイムゾーンがない場合はJSTを付加
+                jst_offset = timedelta(hours=9)
+                jst_tz = timezone(jst_offset)
+                start_time_str = self.start_time.replace(tzinfo=jst_tz).isoformat()
+        
+        if self.end_time:
+            if self.end_time.tzinfo:
+                end_time_str = self.end_time.isoformat()
+            else:
+                jst_offset = timedelta(hours=9)
+                jst_tz = timezone(jst_offset)
+                end_time_str = self.end_time.replace(tzinfo=jst_tz).isoformat()
+        
         return {
             "overall_status": overall_status,
-            "start_time": self.start_time.isoformat() if self.start_time else None,
-            "end_time": self.end_time.isoformat() if self.end_time else None,
+            "start_time": start_time_str,
+            "end_time": end_time_str,
             "duration_seconds": duration,
             "status_counts": {k.value: v for k, v in status_counts.items()},
             "failed_steps": failed_steps,

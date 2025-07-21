@@ -35,16 +35,19 @@ def to_jst(dt_str):
     
     dt = datetime.fromisoformat(dt_str)
     
-    # タイムゾーンがない場合はUTCとして扱う
+    # タイムゾーンがない場合
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        # 診断ファイルの時刻は実際にはJSTで記録されているため、JSTとして扱う
+        jst_offset = timedelta(hours=9)
+        jst_tz = timezone(jst_offset)
+        dt = dt.replace(tzinfo=jst_tz)
+    else:
+        # タイムゾーンがある場合はJSTに変換
+        jst_offset = timedelta(hours=9)
+        jst_tz = timezone(jst_offset)
+        dt = dt.astimezone(jst_tz)
     
-    # JSTに変換
-    jst_offset = timedelta(hours=9)
-    jst_tz = timezone(jst_offset)
-    dt_jst = dt.astimezone(jst_tz)
-    
-    return dt_jst
+    return dt
 
 
 def load_latest_diagnostics():
