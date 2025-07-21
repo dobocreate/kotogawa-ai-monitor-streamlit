@@ -1088,6 +1088,20 @@ class KotogawaDataCollector:
             latest_file = self.data_dir / "latest.json"
             with open(latest_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2, default=str)
+            
+            # タイムスタンプファイルを更新（Streamlit Cloud検知用）
+            timestamp_file = Path(__file__).parent / "data_timestamp.py"
+            timestamp = data.get('timestamp', current_time.isoformat())
+            with open(timestamp_file, 'w', encoding='utf-8') as f:
+                f.write(f'''"""
+データ更新タイムスタンプファイル
+このファイルはGitHub Actionsによって自動的に更新されます
+Streamlit Cloudがデータ更新を検知するために使用されます
+"""
+
+# 最終更新時刻（GitHub Actionsが更新）
+LAST_UPDATE = "{timestamp}"
+''')
         
         # 履歴データを保存
         date_dir = self.history_dir / current_time.strftime("%Y") / current_time.strftime("%m") / current_time.strftime("%d")
@@ -1540,6 +1554,33 @@ class KotogawaDataCollector:
             # 正常データの保存
             self.save_data(data)
             print("Data collection completed successfully")
+            
+            # 予測の実行と保存（エラーが発生しても処理を継続）
+            try:
+                from river_streaming_prediction_v2 import RiverStreamingPredictor
+                from prediction_storage import PredictionStorage
+                
+                # 予測器の初期化
+                predictor = RiverStreamingPredictor()
+                storage = PredictionStorage()
+                
+                # 予測実行
+                predictions = predictor.predict_one(data)
+                if predictions:
+                    # 予測に使用した特徴量を抽出
+                    features = predictor.extract_features(data)
+                    
+                    # 予測結果を保存
+                    if storage.save_predictions(data['data_time'], features, predictions):
+                        print(f"Predictions saved: {len(predictions)} steps")
+                    else:
+                        print("Failed to save predictions")
+                else:
+                    print("No predictions generated")
+                    
+            except Exception as e:
+                print(f"Prediction error (non-critical): {e}")
+                # 予測エラーは致命的ではないので処理を継続
         
         # 古いデータのクリーンアップ
         self.cleanup_old_data()

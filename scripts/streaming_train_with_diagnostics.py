@@ -183,131 +183,80 @@ def detect_data_interval(data_points: List[Dict]) -> Optional[int]:
     return int(intervals[median_idx])
 
 
-def check_future_data(current_data: Dict, diagnostics: LearningDiagnostics) -> Tuple[bool, Optional[List[Dict]]]:
-    """将来データの確認（柔軟な時間間隔対応）"""
-    diagnostics.update_step("3.1_future_data_check", StepStatus.RUNNING)
+def check_past_predictions_for_learning(current_data: Dict, diagnostics: LearningDiagnostics) -> Tuple[bool, Optional[List[Dict]]]:
+    """学習可能な過去の予測を確認"""
+    diagnostics.update_step("3.1_past_predictions_check", StepStatus.RUNNING)
     
     try:
-        data_dir = Path('data')
-        history_dir = data_dir / 'history'
-        all_recent_data = []
+        from prediction_storage import PredictionStorage
         
-        # 今日と昨日のデータを履歴ディレクトリから読み込み
-        jst_offset = timedelta(hours=9)
-        jst_tz = timezone(jst_offset)
-        for days_ago in range(2):
-            date = datetime.now(jst_tz)
-            if days_ago > 0:
-                date = date - timedelta(days=days_ago)
-            
-            # 履歴ディレクトリの日付パス
-            date_path = history_dir / date.strftime("%Y") / date.strftime("%m") / date.strftime("%d")
-            
-            if date_path.exists():
-                # その日のすべての時刻ファイルを読み込み
-                for time_file in sorted(date_path.glob("*.json")):
-                    # error_*.jsonやdaily_summary.jsonはスキップ
-                    if time_file.name.startswith('error_') or time_file.name == 'daily_summary.json':
-                        continue
-                        
-                    try:
-                        with open(time_file, 'r', encoding='utf-8') as f:
-                            file_data = json.load(f)
-                            if isinstance(file_data, dict):
-                                all_recent_data.append(file_data)
-                    except Exception:
-                        continue
-        
-        # 時系列順にソート
-        all_recent_data.sort(key=lambda x: x.get('data_time', ''))
-        
-        # データ間隔を動的に検出
-        data_interval = detect_data_interval(all_recent_data)
-        if data_interval is None:
-            data_interval = 10  # デフォルト10分
-            
-        # 現在のデータのインデックスを見つける
+        # 現在の実測値
         current_time = current_data.get('data_time')
-        current_idx = None
-        
-        for i, data in enumerate(all_recent_data):
-            if data.get('data_time') == current_time:
-                current_idx = i
-                break
-        
-        if current_idx is None:
-            diagnostics.update_step("3.1_future_data_check", StepStatus.FAILED, 
-                                  {"message": "現在のデータが履歴に見つかりません"})
+        if not current_time:
+            diagnostics.update_step("3.1_past_predictions_check", StepStatus.FAILED,
+                                  {"message": "現在時刻が不明です"})
             return False, None
+            
+        # 予測ストレージから過去の予測を取得
+        storage = PredictionStorage()
+        past_predictions = storage.get_predictions_for_learning(current_time)
         
-        # 利用可能な将来データを収集（最大3時間分、ただし利用可能な分だけ）
-        future_data = []
-        current_dt = datetime.fromisoformat(current_time)
-        max_future_time = current_dt + timedelta(hours=3)
-        
-        for i in range(current_idx + 1, len(all_recent_data)):
-            data = all_recent_data[i]
-            try:
-                data_dt = datetime.fromisoformat(data.get('data_time', ''))
-                if data_dt > max_future_time:
-                    break
-                future_data.append(data)
-            except:
-                continue
-        
-        # 利用可能なステップ数を計算
-        available_steps = len(future_data)
-        expected_steps = int(180 / data_interval)  # 3時間分の期待ステップ数
-        
-        if available_steps == 0:
-            diagnostics.update_step("3.1_future_data_check", StepStatus.WARNING, 
-                                  {"message": "将来データがまだ利用できません",
-                                   "available_steps": 0,
-                                   "data_interval_minutes": data_interval})
+        if not past_predictions:
+            diagnostics.update_step("3.1_past_predictions_check", StepStatus.WARNING,
+                                  {"message": "この時刻に対する過去の予測が見つかりません",
+                                   "current_time": current_time})
             return False, None
-        elif available_steps < expected_steps:
-            diagnostics.update_step("3.1_future_data_check", StepStatus.SUCCESS, 
-                                  {"message": f"部分的な将来データが利用可能（{available_steps}/{expected_steps}ステップ）",
-                                   "available_steps": available_steps,
-                                   "expected_steps": expected_steps,
-                                   "data_interval_minutes": data_interval})
+            
+        # 学習用データを準備
+        learning_data = []
+        for pred_data, prediction in past_predictions:
+            learning_item = {
+                "base_time": pred_data["base_time"],
+                "features": pred_data["features"],
+                "prediction": prediction,
+                "actual_data": current_data
+            }
+            learning_data.append(learning_item)
+            
+        diagnostics.update_step("3.1_past_predictions_check", StepStatus.SUCCESS,
+                              {"predictions_found": len(past_predictions),
+                               "current_time": current_time})
+        
+        # 予測精度チェック
+        diagnostics.update_step("3.2_prediction_accuracy_check", StepStatus.RUNNING)
+        
+        # 各予測の精度を計算
+        accuracy_stats = []
+        for item in learning_data:
+            pred_level = item["prediction"]["level"]
+            actual_level = current_data.get("river", {}).get("water_level")
+            
+            if actual_level is not None:
+                error = abs(pred_level - actual_level)
+                accuracy_stats.append({
+                    "base_time": item["base_time"],
+                    "predicted": pred_level,
+                    "actual": actual_level,
+                    "error": error
+                })
+        
+        if accuracy_stats:
+            avg_error = sum(s["error"] for s in accuracy_stats) / len(accuracy_stats)
+            diagnostics.update_step("3.2_prediction_accuracy_check", StepStatus.SUCCESS,
+                                  {"predictions_count": len(accuracy_stats),
+                                   "average_error": round(avg_error, 3)})
         else:
-            diagnostics.update_step("3.1_future_data_check", StepStatus.SUCCESS, 
-                                  {"future_steps_available": available_steps,
-                                   "data_interval_minutes": data_interval})
+            diagnostics.update_step("3.2_prediction_accuracy_check", StepStatus.WARNING,
+                                  {"message": "精度を計算できる予測がありません"})
         
-        # 完全性チェック
-        diagnostics.update_step("3.2_future_completeness", StepStatus.RUNNING)
+        # 学習データの準備完了
+        diagnostics.update_step("3.3_learning_data_ready", StepStatus.SUCCESS,
+                              {"learning_items": len(learning_data)})
         
-        complete_count = 0
-        incomplete_steps = []
-        
-        for i, data in enumerate(future_data):
-            if 'river' in data and data['river'] and data['river'].get('water_level') is not None:
-                complete_count += 1
-            else:
-                incomplete_steps.append(i + 1)
-        
-        completeness_rate = complete_count / len(future_data) * 100
-        
-        if completeness_rate < 80:
-            diagnostics.update_step("3.2_future_completeness", StepStatus.WARNING, 
-                                  {"completeness_rate": completeness_rate,
-                                   "incomplete_steps": incomplete_steps})
-        else:
-            diagnostics.update_step("3.2_future_completeness", StepStatus.SUCCESS, 
-                                  {"completeness_rate": completeness_rate,
-                                   "complete_count": complete_count})
-        
-        # 予測対象時刻のデータ確認
-        diagnostics.update_step("3.3_target_data_check", StepStatus.SUCCESS, 
-                              {"target_times_available": len(future_data)})
-        
-        # 部分的なデータでも学習可能とする
-        return True, future_data if future_data else None
+        return True, learning_data
         
     except Exception as e:
-        diagnostics.update_step("3.1_future_data_check", StepStatus.FAILED, error=e)
+        diagnostics.update_step("3.1_past_predictions_check", StepStatus.FAILED, error=e)
         return False, None
 
 
@@ -428,42 +377,75 @@ def run_prediction(predictor: RiverStreamingPredictor, data: Dict, diagnostics: 
         return None
 
 
-def run_learning(predictor: RiverStreamingPredictor, data: Dict, future_data: List[Dict], diagnostics: LearningDiagnostics):
-    """学習の実行（部分的なデータでも対応）"""
+def run_learning(predictor: RiverStreamingPredictor, current_data: Dict, learning_data: List[Dict], diagnostics: LearningDiagnostics):
+    """過去の予測に対する学習の実行"""
     diagnostics.update_step("6.1_online_learning", StepStatus.RUNNING)
     
     try:
         initial_samples = predictor.n_samples
+        samples_learned = 0
         
-        # 利用可能なデータ数を確認
-        available_data_count = len(future_data) if future_data else 0
-        
-        if available_data_count == 0:
+        # 学習データがない場合
+        if not learning_data:
             diagnostics.update_step("6.1_online_learning", StepStatus.SKIPPED, 
-                                  {"reason": "将来データが利用できません"})
+                                  {"reason": "学習可能な予測データがありません"})
             diagnostics.update_step("6.2_step_learning", StepStatus.SKIPPED, 
-                                  {"reason": "将来データが利用できません"})
+                                  {"reason": "学習可能な予測データがありません"})
             diagnostics.update_step("6.3_drift_detection", StepStatus.SKIPPED, 
-                                  {"reason": "将来データが利用できません"})
+                                  {"reason": "学習可能な予測データがありません"})
             diagnostics.update_step("6.4_error_handling", StepStatus.SKIPPED, 
-                                  {"reason": "将来データが利用できません"})
+                                  {"reason": "学習可能な予測データがありません"})
             return
         
-        # 部分的なデータでも学習実行
-        predictor.learn_one(data, future_data)
+        # 各予測に対して学習を実行
+        for item in learning_data:
+            try:
+                # 予測時の特徴量と実測値で学習
+                features = item["features"]
+                actual_level = item["actual_data"].get("river", {}).get("water_level")
+                
+                if actual_level is not None:
+                    # メインパイプラインの学習（10分先予測）
+                    predictor.pipeline.learn_one(features, actual_level)
+                    samples_learned += 1
+                    
+                    # ドリフト検出用のエラー計算
+                    pred_level = item["prediction"]["level"]
+                    error = abs(actual_level - pred_level)
+                    predictor.drift_detector.update(error)
+                    
+                    if predictor.drift_detector.drift_detected:
+                        predictor.drift_count += 1
+                        predictor.drift_history.append({
+                            'timestamp': item["base_time"],
+                            'error': error
+                        })
+                        
+                    # メトリクスの更新
+                    step_minutes = int((datetime.fromisoformat(item["actual_data"]["data_time"]) - 
+                                      datetime.fromisoformat(item["base_time"])).total_seconds() / 60)
+                    
+                    if 0 < step_minutes <= 180:  # 3時間以内
+                        step_key = f"step_{step_minutes // 10}"
+                        if step_key in predictor.mae_by_step:
+                            predictor.mae_by_step[step_key].update(actual_level, pred_level)
+                            predictor.rmse_by_step[step_key].update(actual_level, pred_level)
+                            
+            except Exception as e:
+                print(f"学習エラー（個別データ）: {e}")
+                continue
         
-        samples_learned = predictor.n_samples - initial_samples
+        predictor.n_samples = initial_samples + samples_learned
         
         diagnostics.update_step("6.1_online_learning", StepStatus.SUCCESS, 
                               {"samples_learned": samples_learned,
                                "total_samples": predictor.n_samples,
-                               "available_future_steps": available_data_count,
-                               "note": f"{available_data_count}ステップ分の将来データで学習"})
+                               "predictions_processed": len(learning_data)})
         
         # 各時間ステップでの学習状況
         diagnostics.update_step("6.2_step_learning", StepStatus.SUCCESS, 
-                              {"steps_processed": available_data_count,
-                               "partial_learning": available_data_count < 18})
+                              {"items_processed": len(learning_data),
+                               "items_learned": samples_learned})
         
         # ドリフト検出
         diagnostics.update_step("6.3_drift_detection", StepStatus.RUNNING)
@@ -666,8 +648,8 @@ def streaming_learn_with_diagnostics():
         # 3. データ前処理
         preprocessed_data = preprocess_data(latest_data, diagnostics)
         
-        # 4. 将来データ確認
-        has_future_data, future_data = check_future_data(latest_data, diagnostics)
+        # 4. 過去の予測データ確認（学習用）
+        has_learning_data, learning_data = check_past_predictions_for_learning(latest_data, diagnostics)
         
         # 5. モデル初期化
         predictor = initialize_model(diagnostics)
@@ -675,21 +657,31 @@ def streaming_learn_with_diagnostics():
             print("モデルの初期化に失敗しました")
             return diagnostics
         
-        # 6. 予測実行
+        # 6. 予測実行（新しいデータに対する予測）
         predictions = run_prediction(predictor, latest_data, diagnostics)
         if predictions:
             print(f"予測実行: 10分先 = {predictions[0]['level']:.2f}m")
+            
+            # 予測結果を保存
+            try:
+                from prediction_storage import PredictionStorage
+                storage = PredictionStorage()
+                features = predictor.extract_features(latest_data)
+                if storage.save_predictions(latest_data['data_time'], features, predictions):
+                    print(f"予測結果を保存: {len(predictions)}ステップ")
+            except Exception as e:
+                print(f"予測結果の保存エラー: {e}")
         
-        # 7. 学習実行（利用可能なデータで柔軟に学習）
-        if future_data and len(future_data) > 0:
-            print(f"利用可能な将来データ: {len(future_data)}ステップ")
-            run_learning(predictor, latest_data, future_data, diagnostics)
-            print(f"学習完了（{len(future_data)}ステップ分）")
+        # 7. 学習実行（過去の予測に対する学習）
+        if learning_data and len(learning_data) > 0:
+            print(f"学習可能な予測データ: {len(learning_data)}件")
+            run_learning(predictor, latest_data, learning_data, diagnostics)
+            print(f"学習完了（{len(learning_data)}件の予測）")
         else:
-            print("学習をスキップ（将来データなし）")
+            print("学習をスキップ（学習可能な予測データなし）")
             # 学習関連のステップをスキップとしてマーク
             for step_id in ["6.1_online_learning", "6.2_step_learning", "6.3_drift_detection", "6.4_error_handling"]:
-                diagnostics.update_step(step_id, StepStatus.SKIPPED, {"reason": "将来データが利用できません"})
+                diagnostics.update_step(step_id, StepStatus.SKIPPED, {"reason": "学習可能な予測データがありません"})
         
         # 8. メトリクス更新
         update_metrics(predictor, diagnostics)

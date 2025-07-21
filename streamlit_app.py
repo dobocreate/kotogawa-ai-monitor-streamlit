@@ -23,6 +23,12 @@ from plotly.subplots import make_subplots
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
+# データ更新タイムスタンプのインポート（Streamlit Cloud検知用）
+try:
+    from scripts.data_timestamp import LAST_UPDATE
+except ImportError:
+    LAST_UPDATE = None
+
 # AI予測モジュールのインポート
 AI_PREDICTION_AVAILABLE = False
 RIVER_LEARNING_AVAILABLE = False
@@ -3116,6 +3122,10 @@ def main():
             
             # データ統計
             st.info(f"データ件数 ： {len(history_data)}件")
+            
+            # データ更新タイムスタンプ（Streamlit Cloud検知用）
+            if LAST_UPDATE:
+                st.info(f"データ更新 ： {LAST_UPDATE[:19]}")
         
         # 警戒レベル説明
         with st.expander("■ 警戒レベル説明", expanded=False):

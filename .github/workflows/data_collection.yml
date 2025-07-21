@@ -74,15 +74,19 @@ jobs:
     - name: Commit and push changes
       if: steps.changes.outputs.has_changes == 'true'
       run: |
-        git add data/
+        git add data/ scripts/data_timestamp.py
+        # 予測結果も追加（存在する場合）
+        if [ -d predictions/ ]; then
+          git add predictions/
+        fi
         git commit -m "📊 Update monitoring data - $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S JST')"
         git pull --rebase origin master
         git push
         
-    - name: Run streaming learning with diagnostics (3 hours after data point)
+    - name: Run streaming learning with diagnostics
       if: steps.changes.outputs.has_changes == 'true'
       run: |
-        # 3時間前のデータで学習を試みる（実測値が揃っているため）
+        # ストリーム学習：過去の予測に対して現在の実測値で学習
         echo "Attempting streaming learning with diagnostics..."
         python scripts/streaming_train_with_diagnostics.py || {
           echo "Learning process encountered an issue (exit code: $?)"

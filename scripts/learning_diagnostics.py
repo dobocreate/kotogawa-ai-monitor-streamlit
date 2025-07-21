@@ -55,10 +55,10 @@ class LearningDiagnostics:
             "2.3_continuity_check": create_step("時系列の連続性確認"),
             "2.4_feature_extraction": create_step("特徴量の抽出"),
             
-            # 3. 将来データの確認フェーズ
-            "3.1_future_data_check": create_step("将来データの存在確認"),
-            "3.2_future_completeness": create_step("将来データの完全性チェック"),
-            "3.3_target_data_check": create_step("予測対象時刻のデータ確認"),
+            # 3. 学習データの確認フェーズ
+            "3.1_past_predictions_check": create_step("過去の予測データ確認"),
+            "3.2_prediction_accuracy_check": create_step("予測精度の計算"),
+            "3.3_learning_data_ready": create_step("学習データの準備状況"),
             
             # 4. モデル初期化フェーズ
             "4.1_model_load": create_step("既存モデルの読み込み"),
@@ -223,9 +223,9 @@ class LearningDiagnostics:
                 "name": "データ前処理フェーズ",
                 "steps": ["2.1_missing_values", "2.2_outlier_detection", "2.3_continuity_check", "2.4_feature_extraction"]
             },
-            "3_future_data": {
-                "name": "将来データ確認フェーズ",
-                "steps": ["3.1_future_data_check", "3.2_future_completeness", "3.3_target_data_check"]
+            "3_learning_data": {
+                "name": "学習データ確認フェーズ",
+                "steps": ["3.1_past_predictions_check", "3.2_prediction_accuracy_check", "3.3_learning_data_ready"]
             },
             "4_model_init": {
                 "name": "モデル初期化フェーズ",
