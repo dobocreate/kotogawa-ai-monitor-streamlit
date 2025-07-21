@@ -5,7 +5,7 @@
 
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import sys
 
 # プロジェクトルートをパスに追加
@@ -18,7 +18,18 @@ def get_latest_data():
     """最新のデータポイントを取得"""
     data_dir = Path('data')
     
-    # 今日のファイルを読み込み
+    # まずlatest.jsonを試す
+    latest_file = data_dir / 'latest.json'
+    if latest_file.exists():
+        try:
+            with open(latest_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            if data:
+                return data
+        except:
+            pass
+    
+    # 次に今日のファイルを読み込み（フォールバック）
     today = datetime.now().strftime('%Y%m%d')
     today_file = data_dir / f'{today}.json'
     
@@ -31,8 +42,10 @@ def get_latest_data():
     if not data:
         return None
     
-    # 最新のデータポイントを返す
-    return data[-1]
+    # データが配列の場合は最新を返す、そうでなければそのまま返す
+    if isinstance(data, list):
+        return data[-1]
+    return data
 
 
 def streaming_learn():
@@ -60,18 +73,31 @@ def streaming_learn():
     
     # 将来の実測値を確認するため、過去3時間分のデータを読み込み
     data_dir = Path('data')
+    history_dir = data_dir / 'history'
     all_recent_data = []
     
-    # 今日と昨日のデータを読み込み
+    # 今日と昨日のデータを履歴ディレクトリから読み込み
     for days_ago in range(2):
         date = datetime.now()
         if days_ago > 0:
-            date = date.replace(day=date.day - days_ago)
+            date = date - timedelta(days=days_ago)
         
-        file_path = data_dir / f'{date.strftime("%Y%m%d")}.json'
-        if file_path.exists():
-            with open(file_path, 'r', encoding='utf-8') as f:
-                all_recent_data.extend(json.load(f))
+        # 履歴ディレクトリの日付パス
+        date_path = history_dir / date.strftime("%Y") / date.strftime("%m") / date.strftime("%d")
+        
+        if date_path.exists():
+            # その日のすべての時刻ファイルを読み込み
+            for time_file in sorted(date_path.glob("*.json")):
+                if time_file.name.startswith('error_') or time_file.name == 'daily_summary.json':
+                    continue
+                    
+                try:
+                    with open(time_file, 'r', encoding='utf-8') as f:
+                        file_data = json.load(f)
+                        if isinstance(file_data, dict):
+                            all_recent_data.append(file_data)
+                except Exception:
+                    continue
     
     # 時系列順にソート
     all_recent_data.sort(key=lambda x: x.get('data_time', ''))

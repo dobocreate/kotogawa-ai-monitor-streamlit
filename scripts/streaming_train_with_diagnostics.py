@@ -133,18 +133,32 @@ def check_future_data(current_data: Dict, diagnostics: LearningDiagnostics) -> T
     
     try:
         data_dir = Path('data')
+        history_dir = data_dir / 'history'
         all_recent_data = []
         
-        # 今日と昨日のデータを読み込み
+        # 今日と昨日のデータを履歴ディレクトリから読み込み
         for days_ago in range(2):
             date = datetime.now()
             if days_ago > 0:
-                date = date.replace(day=date.day - days_ago)
+                date = date - timedelta(days=days_ago)
             
-            file_path = data_dir / f'{date.strftime("%Y%m%d")}.json'
-            if file_path.exists():
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    all_recent_data.extend(json.load(f))
+            # 履歴ディレクトリの日付パス
+            date_path = history_dir / date.strftime("%Y") / date.strftime("%m") / date.strftime("%d")
+            
+            if date_path.exists():
+                # その日のすべての時刻ファイルを読み込み
+                for time_file in sorted(date_path.glob("*.json")):
+                    # error_*.jsonやdaily_summary.jsonはスキップ
+                    if time_file.name.startswith('error_') or time_file.name == 'daily_summary.json':
+                        continue
+                        
+                    try:
+                        with open(time_file, 'r', encoding='utf-8') as f:
+                            file_data = json.load(f)
+                            if isinstance(file_data, dict):
+                                all_recent_data.append(file_data)
+                    except Exception:
+                        continue
         
         # 時系列順にソート
         all_recent_data.sort(key=lambda x: x.get('data_time', ''))

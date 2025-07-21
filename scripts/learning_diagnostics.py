@@ -285,12 +285,35 @@ def check_data_availability(diagnostics: LearningDiagnostics) -> Tuple[bool, Opt
         diagnostics.update_step("1.1_file_check", StepStatus.RUNNING)
         
         data_dir = Path('data')
+        
+        # まずlatest.jsonを確認
+        latest_file = data_dir / 'latest.json'
+        if latest_file.exists():
+            try:
+                with open(latest_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                if data:
+                    diagnostics.update_step("1.1_file_check", StepStatus.SUCCESS, 
+                                          {"file_path": str(latest_file), 
+                                           "file_size": latest_file.stat().st_size,
+                                           "data_time": data.get('data_time', 'unknown')})
+                    
+                    diagnostics.update_step("1.2_file_read", StepStatus.SUCCESS, 
+                                          {"data_source": "latest.json"})
+                    
+                    return True, data
+            except json.JSONDecodeError as e:
+                diagnostics.update_step("1.2_file_read", StepStatus.FAILED, error=e)
+                return False, None
+        
+        # latest.jsonがない場合は従来の方法も試す
         today = datetime.now().strftime('%Y%m%d')
         today_file = data_dir / f'{today}.json'
         
         if not today_file.exists():
             diagnostics.update_step("1.1_file_check", StepStatus.FAILED, 
-                                  {"message": f"ファイルが存在しません: {today_file}"})
+                                  {"message": f"データファイルが見つかりません: {latest_file} および {today_file}"})
             return False, None
         
         diagnostics.update_step("1.1_file_check", StepStatus.SUCCESS, 
