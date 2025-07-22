@@ -66,11 +66,11 @@ jobs:
       run: |
         cd scripts
         python -c "
-from river_dual_model_predictor import RiverDualModelPredictor
-predictor = RiverDualModelPredictor()
-if predictor.load_models():
-    predictor.print_status()
-"
+        from river_dual_model_predictor import RiverDualModelPredictor
+        predictor = RiverDualModelPredictor()
+        if predictor.load_models():
+            predictor.print_status()
+        "
     
     - name: 変更のコミットとプッシュ
       run: |
