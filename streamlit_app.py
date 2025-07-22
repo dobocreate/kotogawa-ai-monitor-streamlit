@@ -33,25 +33,10 @@ except ImportError:
 AI_PREDICTION_AVAILABLE = False
 RIVER_LEARNING_AVAILABLE = False
 
+# リアルタイムAI学習モデルモジュールのインポート
 try:
     import sys
     sys.path.append(str(Path(__file__).parent))
-    from scripts.advanced_prediction import AdvancedRiverLevelPredictor
-    AI_PREDICTION_AVAILABLE = True
-except ImportError:
-    try:
-        from scripts.improved_prediction import ImprovedRiverLevelPredictor as AdvancedRiverLevelPredictor
-        AI_PREDICTION_AVAILABLE = True
-    except ImportError:
-        try:
-            from scripts.simple_prediction import SimpleRiverLevelPredictor as AdvancedRiverLevelPredictor
-            AI_PREDICTION_AVAILABLE = True
-        except ImportError:
-            AI_PREDICTION_AVAILABLE = False
-            print("エキスパート物理ルール予測モデルが利用できません。")
-
-# リアルタイムAI学習モデルモジュールのインポート
-try:
     from scripts.river_dual_model_predictor import RiverDualModelPredictor
     RIVER_LEARNING_AVAILABLE = True
     RIVER_STREAMING_AVAILABLE = True
