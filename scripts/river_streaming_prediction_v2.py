@@ -212,14 +212,16 @@ class RiverStreamingPredictor:
                 pass
         self._last_timestamp = timestamp
         
-        # 仕様書準拠の特徴量
+        # 仕様書準拠の特徴量（数値のみ）
         features = {
-            'timestamp': timestamp,
-            'water_level': level,
-            'dam_outflow': outflow,
-            'rainfall': rainfall,
-            'elapsed_min': elapsed_min
+            'water_level': float(level),
+            'dam_outflow': float(outflow),
+            'rainfall': float(rainfall),
+            'elapsed_min': float(elapsed_min)
         }
+        
+        # タイムスタンプは別途保存（特徴量には含めない）
+        features['_timestamp'] = timestamp
         
         return features
     
@@ -237,13 +239,14 @@ class RiverStreamingPredictor:
         features = self.extract_features(data)
         
         predictions = []
-        base_time = datetime.fromisoformat(features['timestamp'])
+        base_time = datetime.fromisoformat(features['_timestamp'])
         current_level = features['water_level']
         
         # 基本予測（メインパイプライン使用）
         try:
-            # 10分先予測
-            base_prediction = self.pipeline.predict_one(features)
+            # 10分先予測（タイムスタンプを除外）
+            prediction_features = {k: v for k, v in features.items() if not k.startswith('_')}
+            base_prediction = self.pipeline.predict_one(prediction_features)
             if base_prediction is not None:
                 base_change = base_prediction - current_level
             else:
@@ -277,7 +280,9 @@ class RiverStreamingPredictor:
                     # 最初のステップはメインパイプラインの予測を使用
                     pred_change = base_change
                 else:
-                    pred_change = self.models[model_key].predict_one(step_features)
+                    # タイムスタンプを除外して予測
+                    step_prediction_features = {k: v for k, v in step_features.items() if not k.startswith('_')}
+                    pred_change = self.models[model_key].predict_one(step_prediction_features)
                     # predict_oneがNoneを返す場合の対処
                     if pred_change is None:
                         pred_change = 0
@@ -336,11 +341,12 @@ class RiverStreamingPredictor:
                     actual_level = future['river']['water_level']
                     
                     if step == 1:
-                        # メインパイプラインで学習
-                        self.pipeline.learn_one(features, actual_level)
+                        # メインパイプラインで学習（タイムスタンプを除外）
+                        learning_features = {k: v for k, v in features.items() if not k.startswith('_')}
+                        self.pipeline.learn_one(learning_features, actual_level)
                         
                         # ドリフト検出
-                        pred = self.pipeline.predict_one(features)
+                        pred = self.pipeline.predict_one(learning_features)
                         if pred is not None:
                             error = abs(actual_level - pred)
                         else:
@@ -349,7 +355,7 @@ class RiverStreamingPredictor:
                         if self.drift_detector.drift_detected:
                             self.drift_count += 1
                             self.drift_history.append({
-                                'timestamp': features['timestamp'],
+                                'timestamp': features['_timestamp'],
                                 'error': error
                             })
                     
@@ -361,10 +367,12 @@ class RiverStreamingPredictor:
                     step_features['accumulated_change'] = accumulated_change
                     
                     model_key = f'step_{step}'
-                    self.models[model_key].learn_one(step_features, actual_change)
+                    # タイムスタンプを除外して学習
+                    step_learning_features = {k: v for k, v in step_features.items() if not k.startswith('_')}
+                    self.models[model_key].learn_one(step_learning_features, actual_change)
                     
                     # メトリクス更新
-                    pred_change = self.models[model_key].predict_one(step_features)
+                    pred_change = self.models[model_key].predict_one(step_learning_features)
                     if pred_change is None:
                         pred_change = 0
                     pred_level = current_level + accumulated_change + pred_change

@@ -41,16 +41,8 @@ def train_model_with_demo_data(model, demo_file_path="sample/demo_training_data.
         # 予測を実行（学習のため）
         predictions = model.predict_one(current_data)
         
-        # 各時間ステップで学習
-        for step, future in enumerate(record['future']):
-            if step < 18:  # 180分先まで（18ステップ）
-                target_level = future['river']['water_level']
-                
-                # 特徴量を再抽出（predict_oneで内部的に行われるが、learn_oneのために必要）
-                features = model.extract_features(current_data)
-                
-                # 学習実行
-                model.learn_one(features, target_level, step)
+        # 学習実行（futureデータを直接渡す）
+        model.learn_one(current_data, record['future'])
     
     # 最終進捗
     print(f"  進捗: {total_records}/{total_records} (100.0%)")
@@ -89,7 +81,8 @@ def initialize_all_models():
     
     # 基本モデルを保存
     base_model_path = models_dir / "river_base_model_v2.pkl"
-    base_model.save_model(str(base_model_path))
+    base_model.model_path = str(base_model_path)
+    base_model.save_model()
     print(f"基本モデルを保存しました: {base_model_path}")
     
     # 2. 適応モデルの初期状態を作成
@@ -101,7 +94,8 @@ def initialize_all_models():
     
     # 適応モデルの初期状態を保存
     adaptive_initial_path = models_dir / "river_adaptive_model_initial.pkl"
-    adaptive_model.save_model(str(adaptive_initial_path))
+    adaptive_model.model_path = str(adaptive_initial_path)
+    adaptive_model.save_model()
     print(f"適応モデルの初期状態を保存しました: {adaptive_initial_path}")
     
     # 3. 適応モデルとして配置

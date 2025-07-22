@@ -36,7 +36,8 @@ class RiverDualModelPredictor:
                 return False
                 
             self.base_model = RiverStreamingPredictor()
-            self.base_model.load_model(str(self.base_model_path))
+            self.base_model.model_path = str(self.base_model_path)
+            self.base_model.load_model()
             print(f"基本モデルを読み込みました (サンプル数: {self.base_model.n_samples})")
             
             # 適応モデルの読み込み
@@ -46,7 +47,8 @@ class RiverDualModelPredictor:
                 return False
                 
             self.adaptive_model = RiverStreamingPredictor()
-            self.adaptive_model.load_model(str(self.adaptive_model_path))
+            self.adaptive_model.model_path = str(self.adaptive_model_path)
+            self.adaptive_model.load_model()
             print(f"適応モデルを読み込みました (サンプル数: {self.adaptive_model.n_samples})")
             
             # 適応モデルの重みを調整

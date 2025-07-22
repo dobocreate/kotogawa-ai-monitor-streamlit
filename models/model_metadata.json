@@ -1,0 +1,25 @@
+{
+  "initialized_at": "2025-07-22T09:45:36.299665",
+  "base_model": {
+    "path": "/mnt/c/users/kishida/cursorproject/kotogawa-ai-monitor-streamlit/models/river_base_model_v2.pkl",
+    "samples": 1000,
+    "description": "デモデータで学習した基本モデル（固定）"
+  },
+  "adaptive_model": {
+    "path": "/mnt/c/users/kishida/cursorproject/kotogawa-ai-monitor-streamlit/models/river_adaptive_model_v2.pkl",
+    "initial_path": "/mnt/c/users/kishida/cursorproject/kotogawa-ai-monitor-streamlit/models/river_adaptive_model_initial.pkl",
+    "samples": 1500,
+    "description": "デモデータで初期化した適応モデル（継続学習）"
+  },
+  "demo_data": {
+    "path": "sample/demo_training_data.json",
+    "records": 500,
+    "patterns": [
+      "安定した晴天時",
+      "小雨時の緩やかな上昇",
+      "大雨時の急激な上昇",
+      "ダム放流による変化",
+      "複合パターン"
+    ]
+  }
+}

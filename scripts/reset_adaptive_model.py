@@ -41,7 +41,8 @@ def reset_adaptive_model():
             from river_streaming_prediction_v2 import RiverStreamingPredictor
             
             current_model = RiverStreamingPredictor()
-            current_model.load_model(str(adaptive_path))
+            current_model.model_path = str(adaptive_path)
+            current_model.load_model()
             
             current_info = {
                 "samples": current_model.n_samples,
@@ -105,7 +106,8 @@ def reset_adaptive_model():
     # リセット後の情報を確認
     try:
         reset_model = RiverStreamingPredictor()
-        reset_model.load_model(str(adaptive_path))
+        reset_model.model_path = str(adaptive_path)
+        reset_model.load_model()
         
         print(f"\nリセット後の適応モデル情報:")
         print(f"  学習サンプル数: {reset_model.n_samples:,}")
