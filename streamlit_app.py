@@ -32,6 +32,7 @@ except ImportError:
 # AI予測モジュールのインポート
 AI_PREDICTION_AVAILABLE = False
 RIVER_LEARNING_AVAILABLE = False
+AI_IMPORT_ERROR = None
 
 # リアルタイムAI学習モデルモジュールのインポート
 try:
@@ -41,10 +42,11 @@ try:
     RIVER_LEARNING_AVAILABLE = True
     RIVER_STREAMING_AVAILABLE = True
     AI_PREDICTION_AVAILABLE = True  # AI機能を有効化
-except ImportError:
+except ImportError as e:
     RIVER_STREAMING_AVAILABLE = False
     RIVER_LEARNING_AVAILABLE = False
-    print("リアルタイムAI学習モデルが利用できません。")
+    AI_IMPORT_ERROR = str(e)
+    print(f"リアルタイムAI学習モデルが利用できません。エラー: {e}")
 
 # River import helperのインポート
 get_river_predictor = None
@@ -2922,6 +2924,13 @@ def main():
             st.markdown("[📈 予測精度の詳細を見る](/予測精度評価)")
         else:
             st.info("AI予測機能は利用できません")
+            # デバッグ情報を表示
+            with st.expander("デバッグ情報", expanded=False):
+                st.caption(f"AI_PREDICTION_AVAILABLE: {AI_PREDICTION_AVAILABLE}")
+                st.caption(f"RIVER_LEARNING_AVAILABLE: {RIVER_LEARNING_AVAILABLE}")
+                st.caption(f"RIVER_STREAMING_AVAILABLE: {RIVER_STREAMING_AVAILABLE}")
+                if AI_IMPORT_ERROR:
+                    st.error(f"インポートエラー: {AI_IMPORT_ERROR}")
     
     # アラート閾値設定
     with st.sidebar.expander("アラート設定", expanded=False):

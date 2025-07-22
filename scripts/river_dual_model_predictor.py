@@ -7,7 +7,11 @@ from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent))
 
-from river_streaming_prediction import RiverStreamingPredictor
+try:
+    from river_streaming_prediction import RiverStreamingPredictor
+except ImportError:
+    # 絶対インポートを試す
+    from scripts.river_streaming_prediction import RiverStreamingPredictor
 from datetime import datetime
 import json
 from typing import Dict, List, Optional, Any
