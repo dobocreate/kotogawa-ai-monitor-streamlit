@@ -49,21 +49,17 @@ st.title("📊 AI学習結果")
 st.markdown("機械学習モデルの学習状況と予測精度を確認します。")
 
 
-def load_model_info():
-    """モデル情報を読み込み"""
-    model_path = Path('models/river_streaming_model_v2.pkl')
-    
-    if not model_path.exists():
-        return None
-    
+def load_dual_model_info():
+    """デュアルモデル情報を読み込み"""
     try:
-        # モデルを読み込んでget_model_infoを呼び出す
         import sys
         sys.path.append(str(Path(__file__).parent.parent))
-        from scripts.river_streaming_prediction_v2 import RiverStreamingPredictor
+        from scripts.river_dual_model_predictor import RiverDualModelPredictor
         
-        predictor = RiverStreamingPredictor()
-        return predictor.get_model_info()
+        predictor = RiverDualModelPredictor()
+        if predictor.load_models():
+            return predictor.get_model_info()
+        return None
     except Exception as e:
         st.error(f"モデル情報の読み込みエラー: {e}")
         return None
@@ -229,28 +225,62 @@ def plot_drift_history(drift_history, drift_count, n_samples):
 
 
 # メイン処理
-model_info = load_model_info()
+model_info = load_dual_model_info()
 prediction_stats = load_prediction_stats()
 recent_diagnostics = load_recent_diagnostics()
 
 if not model_info:
     st.warning("学習済みモデルが見つかりません。データ収集と学習が実行されるのをお待ちください。")
 else:
+    # モデル選択
+    st.markdown("### 🎯 表示するモデルを選択")
+    model_type = st.radio(
+        "モデルタイプ",
+        ["統合モデル（基本 + 適応）", "基本モデルのみ", "適応モデルのみ"],
+        horizontal=True,
+        help="基本モデルはデモデータで学習済み・固定、適応モデルはリアルタイムデータで継続学習"
+    )
+    
+    # 選択に応じて表示するモデル情報を調整
+    if model_type == "基本モデルのみ":
+        display_info = model_info.get('base_model', {})
+        model_name = "基本モデル（固定）"
+    elif model_type == "適応モデルのみ":
+        display_info = model_info.get('adaptive_model', {})
+        model_name = "適応モデル（継続学習）"
+    else:
+        display_info = model_info
+        model_name = "統合モデル"
     # 概要ダッシュボード
-    st.markdown("## 📈 概要")
+    st.markdown(f"## 📈 {model_name} の概要")
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric(
-            "学習サンプル数",
-            f"{model_info['n_samples']:,}件",
-            delta=f"過去1時間: +{prediction_stats['last_hour']}件" if prediction_stats['last_hour'] > 0 else None,
-            help="モデルが学習したデータポイントの総数"
-        )
+        if model_type == "統合モデル（基本 + 適応）":
+            # 統合モデルの場合は両方のサンプル数を表示
+            base_samples = model_info.get('base_model', {}).get('samples', 0)
+            adaptive_samples = model_info.get('adaptive_model', {}).get('samples', 0)
+            st.metric(
+                "学習サンプル数",
+                f"基本: {base_samples:,}件",
+                delta=f"適応: {adaptive_samples:,}件",
+                help="基本モデル（固定）と適応モデル（継続学習）のサンプル数"
+            )
+        else:
+            samples = display_info.get('samples', 0)
+            st.metric(
+                "学習サンプル数",
+                f"{samples:,}件",
+                delta=f"過去1時間: +{prediction_stats['last_hour']}件" if model_type == "適応モデルのみ" and prediction_stats['last_hour'] > 0 else None,
+                help="モデルが学習したデータポイントの総数"
+            )
     
     with col2:
-        mae_10min = model_info.get('mae_10min')
+        if model_type == "統合モデル（基本 + 適応）":
+            mae_10min = model_info.get('combined_mae_10min')
+        else:
+            mae_10min = display_info.get('mae_10min')
         emoji = get_accuracy_emoji(mae_10min)
         st.metric(
             f"{emoji} 10分先予測精度",
@@ -259,25 +289,62 @@ else:
         )
     
     with col3:
-        drift_count = model_info.get('drift_count', 0)
-        drift_rate = model_info.get('drift_rate', 0)
-        st.metric(
-            "ドリフト検出",
-            f"{drift_count}回",
-            f"{drift_rate:.2f}%",
-            help="データ分布の急激な変化を検出した回数"
-        )
+        if model_type == "統合モデル（基本 + 適応）":
+            adaptive_weight = model_info.get('adaptive_weight', 0.3)
+            st.metric(
+                "適応モデルの重み",
+                f"{adaptive_weight:.0%}",
+                help="統合予測における適応モデルの寄与度"
+            )
+        else:
+            # 基本モデルはドリフト検出なし、適応モデルのみドリフト表示
+            if model_type == "適応モデルのみ":
+                st.metric(
+                    "追加学習サンプル",
+                    f"{display_info.get('additional_samples', 0):,}件",
+                    help="初期化後に追加で学習したサンプル数"
+                )
+            else:
+                st.metric(
+                    "モデルタイプ",
+                    "固定モデル",
+                    help="デモデータで学習済み、更新されません"
+                )
     
     with col4:
-        mae_rolling = model_info.get('mae_rolling_avg')
-        st.metric(
-            "直近100件の精度",
-            format_mae(mae_rolling),
-            help="最新100サンプルでの平均精度"
-        )
+        if model_type == "基本モデルのみ":
+            st.metric(
+                "学習データ",
+                "デモデータ",
+                help="500件の典型的パターンで学習"
+            )
+        elif model_type == "適応モデルのみ":
+            additional = display_info.get('additional_samples', 0)
+            if additional > 0:
+                st.metric(
+                    "学習進度",
+                    f"{min(100, additional // 10)}%",
+                    delta=f"+{additional}件",
+                    help="1000件で100%とした学習進度"
+                )
+            else:
+                st.metric(
+                    "学習進度",
+                    "初期状態",
+                    help="週次リセット後の初期状態"
+                )
+        else:
+            st.metric(
+                "統合方式",
+                f"基本{int((1-adaptive_weight)*100)}% + 適応{int(adaptive_weight*100)}%",
+                help="両モデルの予測を重み付け平均"
+            )
     
     # 詳細情報のタブ
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["時間別精度", "精度詳細表", "学習履歴", "ドリフト分析", "予測統計", "エラー分析", "モデル情報"])
+    if model_type == "統合モデル（基本 + 適応）":
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["時間別精度", "精度詳細表", "学習履歴", "適応モデル進化", "ドリフト分析", "予測統計", "エラー分析", "モデル情報"])
+    else:
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["時間別精度", "精度詳細表", "学習履歴", "ドリフト分析", "予測統計", "エラー分析", "モデル情報"])
     
     with tab1:
         st.markdown("### 📊 予測時間別の精度")
@@ -338,10 +405,16 @@ else:
     
     with tab3:
         st.markdown("### 📈 学習履歴")
-        st.markdown("モデルの学習進捗と精度の改善状況を確認できます。")
+        if model_type == "基本モデルのみ":
+            st.markdown("基本モデルはデモデータで学習済みの固定モデルです。")
+        else:
+            st.markdown("モデルの学習進捗と精度の改善状況を確認できます。")
         
-        # 学習曲線のシミュレーション（実際のデータがない場合の仮想データ）
-        n_samples = model_info['n_samples']
+        # 学習曲線のシミュレーション
+        if model_type == "統合モデル（基本 + 適応）":
+            n_samples = model_info.get('adaptive_model', {}).get('samples', 0)
+        else:
+            n_samples = display_info.get('samples', 0)
         if n_samples > 0:
             # 仮想的な学習曲線を生成
             sample_points = np.linspace(0, n_samples, min(100, n_samples))
@@ -404,7 +477,101 @@ else:
         # 診断情報へのリンク
         st.info("💡 より詳細な学習プロセスの情報は、[学習プロセス診断ページ](/4_🔍_学習プロセス診断)でご確認いただけます。")
     
-    with tab4:
+    # 統合モデルの場合、適応モデル進化タブを表示
+    if model_type == "統合モデル（基本 + 適応）":
+        with tab4:
+            st.markdown("### 🔄 適応モデルの進化")
+            st.markdown("適応モデルがリアルタイムデータでどのように進化しているかを確認できます。")
+            
+            base_info = model_info.get('base_model', {})
+            adaptive_info = model_info.get('adaptive_model', {})
+            
+            # 両モデルの比較
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("#### 基本モデル（固定）")
+                st.info("""
+                - 学習データ: デモデータ（500件）
+                - 学習パターン: 5種類の典型的状況
+                - 更新: なし（固定）
+                - 役割: 安定した基準予測を提供
+                """)
+                if base_info.get('mae_10min'):
+                    st.metric("予測精度", format_mae(base_info['mae_10min']))
+            
+            with col2:
+                st.markdown("#### 適応モデル（継続学習）")
+                additional = adaptive_info.get('additional_samples', 0)
+                if additional > 0:
+                    st.success(f"""
+                    - 初期学習: デモデータ（500件）
+                    - 追加学習: リアルタイムデータ（{additional}件）
+                    - 更新: 3時間ごと
+                    - 役割: 最新パターンへの適応
+                    """)
+                else:
+                    st.info("""
+                    - 初期学習: デモデータ（500件）
+                    - 追加学習: なし（リセット直後）
+                    - 更新: 3時間ごと
+                    - 役割: 最新パターンへの適応
+                    """)
+                if adaptive_info.get('mae_10min'):
+                    st.metric("予測精度", format_mae(adaptive_info['mae_10min']))
+            
+            # 適応重みの変化
+            st.markdown("#### 適応重みの推移")
+            adaptive_weight = model_info.get('adaptive_weight', 0.3)
+            
+            # 重み変化のビジュアライゼーション
+            fig = go.Figure()
+            
+            # 現在の重み
+            fig.add_trace(go.Bar(
+                x=['基本モデル', '適応モデル'],
+                y=[1 - adaptive_weight, adaptive_weight],
+                text=[f'{(1-adaptive_weight)*100:.0f}%', f'{adaptive_weight*100:.0f}%'],
+                textposition='outside',
+                marker_color=['lightblue', 'lightgreen']
+            ))
+            
+            fig.update_layout(
+                title="現在の統合重み",
+                yaxis_title="重み",
+                height=300,
+                showlegend=False,
+                yaxis=dict(range=[0, 1])
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # 適応モデルの進化説明
+            st.markdown("#### 適応モデルの学習サイクル")
+            st.markdown("""
+            1. **初期化**: デモデータで学習した状態からスタート
+            2. **継続学習**: 3時間ごとに最新の予測と実測値で学習
+            3. **重み調整**: 追加学習サンプル数に応じて自動調整
+            4. **週次リセット**: 毎週月曜日に初期状態にリセット（過学習防止）
+            """)
+            
+            # 次回リセットまでの時間
+            from datetime import datetime
+            now = datetime.now()
+            days_until_monday = (7 - now.weekday()) % 7
+            if days_until_monday == 0 and now.hour >= 3:
+                days_until_monday = 7
+            
+            st.info(f"次回リセットまで: {days_until_monday}日 {(3 - now.hour) % 24}時間")
+        
+        # 統合モデルの場合、タブ5以降を定義
+        current_tab = 5
+    else:
+        # 統合モデル以外の場合はtab4から続ける
+        current_tab = 4
+    
+    # ドリフト分析タブ
+    with (tab5 if model_type == "統合モデル（基本 + 適応）" else tab4):
         st.markdown("### 🔍 ドリフト分析")
         st.markdown("ドリフトは、データの統計的性質が時間とともに変化することを示します。")
         
@@ -435,7 +602,8 @@ else:
         else:
             st.success("現在までドリフトは検出されていません。モデルは安定して動作しています。")
     
-    with tab5:
+    # 予測統計タブ
+    with (tab6 if model_type == "統合モデル（基本 + 適応）" else tab5):
         st.markdown("### 📈 予測統計")
         
         col1, col2, col3 = st.columns(3)
@@ -533,7 +701,8 @@ else:
                     else:
                         st.warning("⚠️ 学習データの確認中")
     
-    with tab6:
+    # エラー分析タブ
+    with (tab7 if model_type == "統合モデル（基本 + 適応）" else tab6):
         st.markdown("### 📉 エラー分析")
         
         # エラー統計の計算
@@ -632,7 +801,8 @@ else:
         else:
             st.info("エラー分析に必要なデータがまだ蓄積されていません。")
     
-    with tab7:
+    # モデル情報タブ
+    with (tab8 if model_type == "統合モデル（基本 + 適応）" else tab7):
         st.markdown("### ℹ️ モデル情報")
         
         # モデルタイプ

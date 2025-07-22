@@ -85,12 +85,26 @@ class RiverDualModelPredictor:
             
         print(f"適応モデルの重み: {self.adaptive_weight:.0%} (追加学習: {additional_samples}サンプル)")
     
-    def predict_one(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """両モデルで予測し、重み付け統合"""
+    def predict_one(self, data: Dict[str, Any], model_type: str = 'combined') -> List[Dict[str, Any]]:
+        """両モデルで予測し、重み付け統合
+        
+        Args:
+            data: 予測用データ
+            model_type: 'combined' (統合), 'base' (基本のみ), 'adaptive' (適応のみ)
+        """
         if not self.models_loaded:
             if not self.load_models():
                 return []
         
+        # モデルタイプに応じて予測
+        if model_type == 'base':
+            # 基本モデルのみ使用
+            return self.base_model.predict_one(data)
+        elif model_type == 'adaptive':
+            # 適応モデルのみ使用
+            return self.adaptive_model.predict_one(data)
+        
+        # 統合モデル（デフォルト）
         # 各モデルで予測
         base_predictions = self.base_model.predict_one(data)
         adaptive_predictions = self.adaptive_model.predict_one(data)

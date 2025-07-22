@@ -52,7 +52,7 @@ except ImportError:
 
 # リアルタイムAI学習モデルモジュールのインポート
 try:
-    from scripts.river_streaming_prediction import RiverStreamingPredictor
+    from scripts.river_dual_model_predictor import RiverDualModelPredictor
     RIVER_LEARNING_AVAILABLE = True
     RIVER_STREAMING_AVAILABLE = True
 except ImportError:
@@ -1501,9 +1501,21 @@ class KotogawaMonitor:
                             # リアルタイムAI学習モデル
                             latest_data = history_data[-1] if history_data else None
                             if latest_data:
-                                predictions = predictor.predict_one(latest_data)
+                                # デュアルモデルタイプを取得
+                                dual_model_type = st.session_state.get('dual_model_type', '統合モデル（基本 + 適応）')
+                                
+                                # モデルタイプをパラメータに変換
+                                if dual_model_type == "基本モデルのみ":
+                                    model_type = 'base'
+                                elif dual_model_type == "適応モデルのみ":
+                                    model_type = 'adaptive'
+                                else:
+                                    model_type = 'combined'
+                                
+                                # 予測実行
+                                predictions = predictor.predict_one(latest_data, model_type=model_type)
                                 # デバッグ情報を保存
-                                st.session_state['prediction_method_used'] = 'predict_one (streaming)'
+                                st.session_state['prediction_method_used'] = f'predict_one (streaming, {model_type})'
                             else:
                                 predictions = None
                         else:
@@ -2761,6 +2773,18 @@ def main():
             # セッション状態に保存
             st.session_state.prediction_model = prediction_model
             
+            # リアルタイムAI学習モデルの場合、基本モデルか適応モデルかを選択
+            if prediction_model == "リアルタイムAI学習モデル":
+                dual_model_type = st.radio(
+                    "デュアルモデルタイプ",
+                    ["統合モデル（基本 + 適応）", "基本モデルのみ", "適応モデルのみ"],
+                    index=0,
+                    help="基本モデルは固定的な予測、適応モデルは継続的に学習します"
+                )
+                st.session_state.dual_model_type = dual_model_type
+            else:
+                st.session_state.dual_model_type = None
+            
             # モデル解説へのリンク
             st.markdown("[🤖 AI予測モデルの詳細解説を見る](/AI予測モデル解説)")
             
@@ -2812,10 +2836,14 @@ def main():
                 actual_model_name = type(predictor).__name__
                 
                 # 期待されるモデルと実際のモデルを比較
-                expected_model = "RiverStreamingPredictor" if prediction_model == "リアルタイムAI学習モデル" else "AdvancedRiverLevelPredictor"
+                expected_model = "RiverDualModelPredictor" if prediction_model == "リアルタイムAI学習モデル" else "AdvancedRiverLevelPredictor"
                 
                 if actual_model_name == expected_model:
                     st.success(f"✅ 実行中: {actual_model_name}")
+                    # デュアルモデルの場合、どのタイプが選択されているか表示
+                    if actual_model_name == "RiverDualModelPredictor":
+                        dual_type = st.session_state.get('dual_model_type', '統合モデル（基本 + 適応）')
+                        st.info(f"🔄 モデルタイプ: {dual_type}")
                 else:
                     st.warning(f"⚠️ 代替モデル実行中: {actual_model_name}")
                     st.caption(f"期待: {expected_model}")
@@ -3008,17 +3036,14 @@ def main():
             
             try:
                 if selected_model == "リアルタイムAI学習モデル" and RIVER_LEARNING_AVAILABLE:
-                    # リアルタイムAI学習モデルを取得
-                    if get_river_predictor:
-                        predictor_instance = get_river_predictor()
-                        if predictor_instance:
-                            st.session_state.predictor = predictor_instance
-                            st.session_state.last_prediction_model = selected_model
-                            # Streamlit.ioでは学習しない（GitHub Actionsで学習済みモデルを使用）
-                        else:
-                            raise Exception("リアルタイムAI学習モデルの作成に失敗")
+                    # リアルタイムAI学習モデルを作成
+                    predictor_instance = RiverDualModelPredictor()
+                    if predictor_instance:
+                        st.session_state.predictor = predictor_instance
+                        st.session_state.last_prediction_model = selected_model
+                        # Streamlit.ioでは学習しない（GitHub Actionsで学習済みモデルを使用）
                     else:
-                        raise Exception("get_river_predictorが利用できません")
+                        raise Exception("リアルタイムAI学習モデルの作成に失敗")
                 else:
                     # エキスパート物理ルール予測モデルを使用
                     st.session_state.predictor = AdvancedRiverLevelPredictor()
