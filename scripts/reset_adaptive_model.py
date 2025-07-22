@@ -38,7 +38,7 @@ def reset_adaptive_model():
             # RiverStreamingPredictorをインポートして情報を取得
             import sys
             sys.path.append(str(Path(__file__).parent))
-            from river_streaming_prediction_v2 import RiverStreamingPredictor
+            from river_streaming_prediction import RiverStreamingPredictor
             
             current_model = RiverStreamingPredictor()
             current_model.model_path = str(adaptive_path)

@@ -18,7 +18,7 @@ except ImportError:
     EXPERT_AVAILABLE = False
 
 try:
-    from scripts.river_streaming_prediction_v2 import RiverStreamingPredictor
+    from scripts.river_streaming_prediction import RiverStreamingPredictor
     STREAMING_AVAILABLE = True
 except ImportError:
     STREAMING_AVAILABLE = False

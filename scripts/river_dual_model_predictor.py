@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent))
 
-from river_streaming_prediction_v2 import RiverStreamingPredictor
+from river_streaming_prediction import RiverStreamingPredictor
 from datetime import datetime
 import json
 from typing import Dict, List, Optional, Any
@@ -19,7 +19,6 @@ class RiverDualModelPredictor:
     def __init__(self):
         self.base_model = None
         self.adaptive_model = None
-        self.adaptive_weight = 0.3  # 初期重み（30%）
         self.models_loaded = False
         
         # モデルパス
@@ -51,9 +50,6 @@ class RiverDualModelPredictor:
             self.adaptive_model.load_model()
             print(f"適応モデルを読み込みました (サンプル数: {self.adaptive_model.n_samples})")
             
-            # 適応モデルの重みを調整
-            self._adjust_adaptive_weight()
-            
             self.models_loaded = True
             return True
             
@@ -61,36 +57,12 @@ class RiverDualModelPredictor:
             print(f"モデル読み込みエラー: {e}")
             return False
     
-    def _adjust_adaptive_weight(self):
-        """適応モデルの重みを学習サンプル数に基づいて調整"""
-        if not self.adaptive_model:
-            return
-            
-        # 基本モデルのサンプル数との差分を計算
-        base_samples = self.base_model.n_samples if self.base_model else 0
-        adaptive_samples = self.adaptive_model.n_samples
-        additional_samples = adaptive_samples - base_samples
-        
-        # 追加学習サンプル数に基づいて重みを設定
-        if additional_samples <= 0:
-            self.adaptive_weight = 0.1  # 追加学習なし: 10%
-        elif additional_samples < 100:
-            self.adaptive_weight = 0.15  # 少量: 15%
-        elif additional_samples < 500:
-            self.adaptive_weight = 0.25  # 中量: 25%
-        elif additional_samples < 1000:
-            self.adaptive_weight = 0.30  # 多量: 30%
-        else:
-            self.adaptive_weight = 0.35  # 大量: 35%（最大）
-            
-        print(f"適応モデルの重み: {self.adaptive_weight:.0%} (追加学習: {additional_samples}サンプル)")
-    
-    def predict_one(self, data: Dict[str, Any], model_type: str = 'combined') -> List[Dict[str, Any]]:
-        """両モデルで予測し、重み付け統合
+    def predict_one(self, data: Dict[str, Any], model_type: str = 'adaptive') -> List[Dict[str, Any]]:
+        """選択されたモデルで予測
         
         Args:
             data: 予測用データ
-            model_type: 'combined' (統合), 'base' (基本のみ), 'adaptive' (適応のみ)
+            model_type: 'base' (基本モデル) または 'adaptive' (適応モデル)
         """
         if not self.models_loaded:
             if not self.load_models():
@@ -98,60 +70,11 @@ class RiverDualModelPredictor:
         
         # モデルタイプに応じて予測
         if model_type == 'base':
-            # 基本モデルのみ使用
+            # 基本モデルを使用
             return self.base_model.predict_one(data)
-        elif model_type == 'adaptive':
-            # 適応モデルのみ使用
+        else:
+            # 適応モデルを使用（デフォルト）
             return self.adaptive_model.predict_one(data)
-        
-        # 統合モデル（デフォルト）
-        # 各モデルで予測
-        base_predictions = self.base_model.predict_one(data)
-        adaptive_predictions = self.adaptive_model.predict_one(data)
-        
-        if not base_predictions or not adaptive_predictions:
-            print("警告: 予測結果が取得できませんでした")
-            return []
-        
-        # 予測結果を統合
-        combined_predictions = []
-        
-        for base, adaptive in zip(base_predictions, adaptive_predictions):
-            # 重み付け平均で水位を計算
-            combined_level = (
-                base["level"] * (1 - self.adaptive_weight) + 
-                adaptive["level"] * self.adaptive_weight
-            )
-            
-            # 信頼度も重み付け平均
-            combined_confidence = (
-                base["confidence"] * (1 - self.adaptive_weight) + 
-                adaptive["confidence"] * self.adaptive_weight
-            )
-            
-            # 統合結果を作成
-            combined = {
-                "datetime": base["datetime"],
-                "level": round(combined_level, 2),
-                "confidence": round(combined_confidence, 3),
-                "model_type": "dual_model_v2",
-                "base_level": base["level"],
-                "adaptive_level": adaptive["level"],
-                "adaptive_weight": round(self.adaptive_weight, 2),
-                "considered_delay": base.get("considered_delay", 90),
-                "mae_last_100": adaptive.get("mae_last_100"),  # 適応モデルの精度を使用
-                "drift_detected": adaptive.get("drift_detected", False),
-                "model_version": f"dual-{datetime.now():%Y%m%d}"
-            }
-            
-            # その他の情報もコピー
-            for key in ["mae_10min", "mae_30min", "mae_60min"]:
-                if key in adaptive:
-                    combined[key] = adaptive[key]
-                    
-            combined_predictions.append(combined)
-        
-        return combined_predictions
     
     def extract_features(self, data: Dict[str, Any]) -> Dict[str, float]:
         """特徴量を抽出（適応モデルのメソッドを使用）"""
@@ -167,10 +90,6 @@ class RiverDualModelPredictor:
                 
         # 適応モデルのみ学習
         self.adaptive_model.learn_one(features, target, step)
-        
-        # 100サンプルごとに重みを再調整
-        if self.adaptive_model.n_samples % 100 == 0:
-            self._adjust_adaptive_weight()
     
     def save_model(self, path: Optional[str] = None):
         """適応モデルのみ保存（基本モデルは変更しない）"""
@@ -195,7 +114,6 @@ class RiverDualModelPredictor:
             
         info = {
             "model_type": "dual_model_v2",
-            "adaptive_weight": round(self.adaptive_weight, 2),
             "base_model": {
                 "loaded": self.base_model is not None,
                 "samples": self.base_model.n_samples if self.base_model else 0,
@@ -228,17 +146,6 @@ class RiverDualModelPredictor:
                     self.adaptive_model.n_samples - self.base_model.n_samples
                 )
         
-        # 全体の精度（重み付け平均）
-        base_mae = info["base_model"]["mae_10min"]
-        adaptive_mae = info["adaptive_model"]["mae_10min"]
-        
-        if base_mae is not None and adaptive_mae is not None:
-            info["combined_mae_10min"] = round(
-                base_mae * (1 - self.adaptive_weight) + 
-                adaptive_mae * self.adaptive_weight, 
-                3
-            )
-        
         return info
     
     def print_status(self):
@@ -247,7 +154,6 @@ class RiverDualModelPredictor:
         
         print("\n=== デュアルモデル状態 ===")
         print(f"モデルタイプ: {info['model_type']}")
-        print(f"適応モデル重み: {info['adaptive_weight']:.0%}")
         
         print("\n基本モデル:")
         print(f"  読み込み: {'✓' if info['base_model']['loaded'] else '✗'}")
@@ -262,8 +168,6 @@ class RiverDualModelPredictor:
         if info['adaptive_model']['mae_10min'] is not None:
             print(f"  MAE (10分): {info['adaptive_model']['mae_10min']:.3f}")
             
-        if 'combined_mae_10min' in info:
-            print(f"\n統合MAE (10分): {info['combined_mae_10min']:.3f}")
 
 
 # テスト用
@@ -300,5 +204,3 @@ if __name__ == "__main__":
             print("\n最初の3つの予測:")
             for i, pred in enumerate(predictions[:3]):
                 print(f"  {i+1}. {pred['datetime']}: {pred['level']:.2f}m")
-                print(f"     基本: {pred['base_level']:.2f}m, 適応: {pred['adaptive_level']:.2f}m")
-                print(f"     重み: 基本{100-pred['adaptive_weight']*100:.0f}% + 適応{pred['adaptive_weight']*100:.0f}%")

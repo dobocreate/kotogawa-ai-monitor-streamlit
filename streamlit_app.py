@@ -40,6 +40,7 @@ try:
     from scripts.river_dual_model_predictor import RiverDualModelPredictor
     RIVER_LEARNING_AVAILABLE = True
     RIVER_STREAMING_AVAILABLE = True
+    AI_PREDICTION_AVAILABLE = True  # AI機能を有効化
 except ImportError:
     RIVER_STREAMING_AVAILABLE = False
     RIVER_LEARNING_AVAILABLE = False
@@ -2825,7 +2826,7 @@ def main():
                     st.success(f"✅ 実行中: {actual_model_name}")
                     # デュアルモデルの場合、どのタイプが選択されているか表示
                     if actual_model_name == "RiverDualModelPredictor":
-                        dual_type = st.session_state.get('dual_model_type', '統合モデル（基本 + 適応）')
+                        dual_type = st.session_state.get('dual_model_type', '適応モデル（継続学習）')
                         st.info(f"🔄 モデルタイプ: {dual_type}")
                 else:
                     st.warning(f"⚠️ 代替モデル実行中: {actual_model_name}")

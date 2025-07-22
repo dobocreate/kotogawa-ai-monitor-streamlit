@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 
-from river_streaming_prediction_v2 import RiverStreamingPredictor
+from river_streaming_prediction import RiverStreamingPredictor
 import json
 import shutil
 from datetime import datetime
