@@ -350,24 +350,31 @@ else:
         st.markdown("### 📊 予測時間別の精度")
         st.markdown("予測する時間が長くなるほど、誤差が大きくなる傾向があります。")
         
-        if model_info.get('metrics_by_step'):
-            fig = plot_step_accuracy(model_info['metrics_by_step'])
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # 精度の解釈
-            st.info("""
-            **精度の目安**
-            - 🟢 **優秀**（±5cm未満）: 非常に高い精度で予測できています
-            - 🟡 **良好**（±5〜10cm）: 実用的な精度で予測できています
-            - 🔴 **要改善**（±10cm以上）: さらなる学習が必要です
-            """)
+        # デュアルモデルでは、個別モデルのmetrics_by_stepを使用
+        metrics_by_step = None
+        if model_type == "基本モデルのみ" and 'base_model' in model_info:
+            # 基本モデルのmetricsを取得（TODO: 基本モデルにmetrics_by_stepが必要）
+            st.info("基本モデルの時間別精度は現在準備中です。")
+        elif model_type == "適応モデルのみ" and 'adaptive_model' in model_info:
+            # 適応モデルのmetricsを取得（TODO: 適応モデルにmetrics_by_stepが必要）
+            st.info("適応モデルの時間別精度は現在準備中です。")
         else:
-            st.info("まだ十分な学習データがありません。")
+            # 統合モデルの場合は両方のモデルの精度を表示
+            st.info("統合モデルの時間別精度は現在準備中です。")
+            
+        # 精度の解釈
+        st.info("""
+        **精度の目安**
+        - 🟢 **優秀**（±5cm未満）: 非常に高い精度で予測できています
+        - 🟡 **良好**（±5〜10cm）: 実用的な精度で予測できています
+        - 🔴 **要改善**（±10cm以上）: さらなる学習が必要です
+        """)
     
     with tab2:
         st.markdown("### 📋 時間別精度詳細")
         
-        if model_info.get('metrics_by_step'):
+        # デュアルモデルではmetrics_by_stepが存在しない
+        if False:  # 一時的に無効化
             # データフレームの作成
             data = []
             for step_label, metrics in sorted(model_info['metrics_by_step'].items(), 
@@ -391,17 +398,18 @@ else:
             df = pd.DataFrame(data)
             st.dataframe(df, use_container_width=True, hide_index=True)
             
-            # 統計サマリー
-            valid_mae = [m['mae'] for m in model_info['metrics_by_step'].values() if m.get('mae')]
-            if valid_mae:
+            # 統計サマリー（一時的に無効化）
+            if False:
                 st.markdown("#### 統計サマリー")
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric("最小誤差", f"±{min(valid_mae):.3f}m")
+                    st.metric("最小誤差", "準備中")
                 with col2:
-                    st.metric("平均誤差", f"±{np.mean(valid_mae):.3f}m")
+                    st.metric("平均誤差", "準備中")
                 with col3:
-                    st.metric("最大誤差", f"±{max(valid_mae):.3f}m")
+                    st.metric("最大誤差", "準備中")
+        else:
+            st.info("現在、時間別精度の詳細表示を準備中です。")
     
     with tab3:
         st.markdown("### 📈 学習履歴")
@@ -589,7 +597,9 @@ else:
             
             # ドリフト履歴のグラフ
             drift_history = model_info.get('recent_drifts', [])
-            fig = plot_drift_history(drift_history, drift_count, model_info['n_samples'])
+            # 適応モデルのサンプル数を使用
+            n_samples = model_info.get('adaptive_model', {}).get('samples', 0)
+            fig = plot_drift_history(drift_history, drift_count, n_samples)
             if fig:
                 st.plotly_chart(fig, use_container_width=True)
             
@@ -706,7 +716,7 @@ else:
         st.markdown("### 📉 エラー分析")
         
         # エラー統計の計算
-        if model_info.get('metrics_by_step'):
+        if False:  # デュアルモデルではmetrics_by_stepが存在しないため一時的に無効化
             # 各ステップのMAEを収集
             mae_values = []
             step_labels = []
@@ -799,7 +809,23 @@ else:
                 - 🌧️ 降雨時: 急激な水位変化により予測誤差が増大
                 """)
         else:
-            st.info("エラー分析に必要なデータがまだ蓄積されていません。")
+            st.info("エラー分析の詳細情報を準備中です。")
+            
+            # 基本的な精度情報を表示
+            col1, col2 = st.columns(2)
+            with col1:
+                if model_type == "統合モデル（基本 + 適応）":
+                    mae = model_info.get('combined_mae_10min')
+                else:
+                    mae = display_info.get('mae_10min')
+                
+                if mae:
+                    st.metric("🎯 10分先予測の平均誤差", format_mae(mae))
+                    
+            with col2:
+                if model_type == "適応モデルのみ":
+                    additional = display_info.get('additional_samples', 0)
+                    st.metric("📈 追加学習サンプル", f"{additional:,}件")
     
     # モデル情報タブ
     with (tab8 if model_type == "統合モデル（基本 + 適応）" else tab7):
@@ -856,7 +882,10 @@ with st.sidebar:
         
         # 最終更新情報
         st.markdown("### ⏰ 更新情報")
-        st.caption(f"学習サンプル数: {model_info['n_samples']:,}")
+        # デュアルモデルの総サンプル数を表示
+        base_samples = model_info.get('base_model', {}).get('samples', 0)
+        adaptive_samples = model_info.get('adaptive_model', {}).get('samples', 0)
+        st.caption(f"基本モデル: {base_samples:,}件 | 適応モデル: {adaptive_samples:,}件")
         
         # 予測統計
         st.markdown("### 🔮 予測活動")
