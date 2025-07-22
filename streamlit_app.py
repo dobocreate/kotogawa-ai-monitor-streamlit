@@ -1474,13 +1474,13 @@ class KotogawaMonitor:
                     # 予測器はメイン関数で既に初期化済み
                     if 'predictor' not in st.session_state:
                         # フォールバック（念のため）
-                        st.session_state.predictor = AdvancedRiverLevelPredictor()
+                        st.session_state.predictor = RiverDualModelPredictor()
                         st.session_state.last_prediction_model = "エキスパート物理ルール予測モデル"
                     
                     predictor = st.session_state.predictor
                     
                     # 現在選択されているモデルを取得
-                    selected_model = st.session_state.get('prediction_model', 'エキスパート物理ルール予測モデル')
+                    selected_model = st.session_state.get('prediction_model', 'リアルタイムAI学習モデル')
                     
                     # 予測実行（履歴データが十分にある場合）
                     if len(history_data) >= 18:  # 3時間分のデータ
@@ -2751,9 +2751,9 @@ def main():
             st.markdown("**AI予測設定**")
             prediction_model = st.radio(
                 "予測モデル",
-                ["エキスパート物理ルール予測モデル", "リアルタイムAI学習モデル"],
+                ["リアルタイムAI学習モデル"],
                 index=0,
-                help="予測モデルを選択してください"
+                help="AI学習モデルを使用します"
             )
             
             # セッション状態に保存
@@ -2822,7 +2822,7 @@ def main():
                 actual_model_name = type(predictor).__name__
                 
                 # 期待されるモデルと実際のモデルを比較
-                expected_model = "RiverDualModelPredictor" if prediction_model == "リアルタイムAI学習モデル" else "AdvancedRiverLevelPredictor"
+                expected_model = "RiverDualModelPredictor" if prediction_model == "リアルタイムAI学習モデル" else "RiverDualModelPredictor"
                 
                 if actual_model_name == expected_model:
                     st.success(f"✅ 実行中: {actual_model_name}")
@@ -3021,7 +3021,7 @@ def main():
     
     # AI予測モデルの初期化（データ読み込み後、表示前に実行）
     if AI_PREDICTION_AVAILABLE and history_data:
-        selected_model = st.session_state.get('prediction_model', 'エキスパート物理ルール予測モデル')
+        selected_model = st.session_state.get('prediction_model', 'リアルタイムAI学習モデル')
         
         # モデルが変更された場合またはモデルが存在しない場合は初期化
         if ('predictor' not in st.session_state or 
@@ -3038,13 +3038,13 @@ def main():
                     else:
                         raise Exception("リアルタイムAI学習モデルの作成に失敗")
                 else:
-                    # エキスパート物理ルール予測モデルを使用
-                    st.session_state.predictor = AdvancedRiverLevelPredictor()
+                    # リアルタイムAI学習モデルを使用（フォールバック）
+                    st.session_state.predictor = RiverDualModelPredictor()
                     st.session_state.last_prediction_model = selected_model
             except Exception as e:
                 # エラー時はフォールバック
-                st.session_state.predictor = AdvancedRiverLevelPredictor()
-                st.session_state.last_prediction_model = "エキスパート物理ルール予測モデル"
+                st.session_state.predictor = RiverDualModelPredictor()
+                st.session_state.last_prediction_model = "リアルタイムAI学習モデル"
                 if 'ai_prediction_error' not in st.session_state:
                     st.session_state.ai_prediction_error = str(e)
     
