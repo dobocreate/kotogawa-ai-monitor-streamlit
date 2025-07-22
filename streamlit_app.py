@@ -1502,15 +1502,13 @@ class KotogawaMonitor:
                             latest_data = history_data[-1] if history_data else None
                             if latest_data:
                                 # デュアルモデルタイプを取得
-                                dual_model_type = st.session_state.get('dual_model_type', '統合モデル（基本 + 適応）')
+                                dual_model_type = st.session_state.get('dual_model_type', '適応モデル（継続学習）')
                                 
                                 # モデルタイプをパラメータに変換
-                                if dual_model_type == "基本モデルのみ":
+                                if dual_model_type == "基本モデル（固定）":
                                     model_type = 'base'
-                                elif dual_model_type == "適応モデルのみ":
-                                    model_type = 'adaptive'
                                 else:
-                                    model_type = 'combined'
+                                    model_type = 'adaptive'
                                 
                                 # 予測実行
                                 predictions = predictor.predict_one(latest_data, model_type=model_type)
@@ -2776,10 +2774,10 @@ def main():
             # リアルタイムAI学習モデルの場合、基本モデルか適応モデルかを選択
             if prediction_model == "リアルタイムAI学習モデル":
                 dual_model_type = st.radio(
-                    "デュアルモデルタイプ",
-                    ["統合モデル（基本 + 適応）", "基本モデルのみ", "適応モデルのみ"],
-                    index=0,
-                    help="基本モデルは固定的な予測、適応モデルは継続的に学習します"
+                    "モデルタイプ",
+                    ["基本モデル（固定）", "適応モデル（継続学習）"],
+                    index=1,  # デフォルトは適応モデル
+                    help="基本モデルは固定的な予測、適応モデルはオンラインで継続的に学習します"
                 )
                 st.session_state.dual_model_type = dual_model_type
             else:
