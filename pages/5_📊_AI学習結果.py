@@ -199,6 +199,88 @@ def plot_step_accuracy(metrics_by_step):
     return fig
 
 
+def display_key_timepoint_accuracy(metrics_by_step):
+    """主要時間ポイントの精度を表示"""
+    # 主要時間ポイントのMAEを取得
+    key_points = {
+        '30分': metrics_by_step.get('30min', {}).get('mae'),
+        '1時間': metrics_by_step.get('60min', {}).get('mae'),
+        '2時間': metrics_by_step.get('120min', {}).get('mae'),
+        '3時間': metrics_by_step.get('180min', {}).get('mae')
+    }
+    
+    # 4列で表示
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        mae_30 = key_points['30分']
+        emoji = get_accuracy_emoji(mae_30)
+        st.metric(f"30分先 {emoji}", format_mae(mae_30))
+        if mae_30 is not None:
+            st.caption("即時対応判断用")
+    
+    with col2:
+        mae_60 = key_points['1時間']
+        emoji = get_accuracy_emoji(mae_60)
+        delta = f"+{(mae_60 - mae_30):.3f}m" if mae_30 and mae_60 else None
+        st.metric(f"1時間先 {emoji}", format_mae(mae_60), delta)
+        if mae_60 is not None:
+            st.caption("準備・移動時間考慮")
+    
+    with col3:
+        mae_120 = key_points['2時間']
+        emoji = get_accuracy_emoji(mae_120)
+        delta = f"+{(mae_120 - mae_60):.3f}m" if mae_60 and mae_120 else None
+        st.metric(f"2時間先 {emoji}", format_mae(mae_120), delta)
+        if mae_120 is not None:
+            st.caption("計画的対応用")
+    
+    with col4:
+        mae_180 = key_points['3時間']
+        emoji = get_accuracy_emoji(mae_180)
+        delta = f"+{(mae_180 - mae_120):.3f}m" if mae_120 and mae_180 else None
+        st.metric(f"3時間先 {emoji}", format_mae(mae_180), delta)
+        if mae_180 is not None:
+            st.caption("避難準備検討用")
+    
+    # 主要ポイントのグラフ
+    if any(v is not None for v in key_points.values()):
+        fig = go.Figure()
+        
+        times = []
+        maes = []
+        for time, mae in key_points.items():
+            if mae is not None:
+                times.append(time)
+                maes.append(mae)
+        
+        fig.add_trace(go.Scatter(
+            x=times,
+            y=maes,
+            mode='lines+markers',
+            name='予測精度',
+            line=dict(color='blue', width=4),
+            marker=dict(size=12)
+        ))
+        
+        # 精度レベルの基準線
+        fig.add_hline(y=0.05, line_dash="dot", line_color="green", 
+                      annotation_text="高精度（±5cm）")
+        fig.add_hline(y=0.10, line_dash="dot", line_color="orange", 
+                      annotation_text="実用レベル（±10cm）")
+        
+        fig.update_layout(
+            title="主要時間ポイントの予測精度",
+            xaxis_title="予測時間",
+            yaxis_title="MAE（m）",
+            height=300,
+            showlegend=False,
+            hovermode='x unified'
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+
+
 def plot_adaptive_learning_timeline(diagnostics_history):
     """適応モデルの学習タイムラインを表示"""
     if not diagnostics_history:
@@ -536,26 +618,31 @@ if latest_diagnostics:
     # ステップ別精度
     metrics_by_step = latest_diagnostics.get('metrics_by_step', {})
     if metrics_by_step:
-        st.subheader("📊 予測時間別の精度")
+        # 主要時間ポイントの精度表示
+        st.subheader("🎯 主要時間ポイントの予測精度")
+        display_key_timepoint_accuracy(metrics_by_step)
+        
+        # 全ステップの詳細グラフ
+        st.subheader("📊 全時間ステップの精度推移")
         step_fig = plot_step_accuracy(metrics_by_step)
         st.plotly_chart(step_fig, use_container_width=True)
         
-        # 精度サマリー
-        st.subheader("📋 精度サマリー")
-        summary_data = []
-        for step_label, metrics in sorted(metrics_by_step.items(), 
-                                        key=lambda x: int(x[0].replace('min', ''))):
-            mae = metrics.get('mae')
-            emoji = get_accuracy_emoji(mae)
-            summary_data.append({
-                '予測時間': step_label,
-                '精度評価': emoji,
-                'MAE': format_mae(mae),
-                'RMSE': format_mae(metrics.get('rmse'))
-            })
-        
-        summary_df = pd.DataFrame(summary_data)
-        st.dataframe(summary_df, hide_index=True, use_container_width=True)
+        # 精度サマリー（詳細表）
+        with st.expander("📋 全ステップの精度詳細", expanded=False):
+            summary_data = []
+            for step_label, metrics in sorted(metrics_by_step.items(), 
+                                            key=lambda x: int(x[0].replace('min', ''))):
+                mae = metrics.get('mae')
+                emoji = get_accuracy_emoji(mae)
+                summary_data.append({
+                    '予測時間': step_label,
+                    '精度評価': emoji,
+                    'MAE': format_mae(mae),
+                    'RMSE': format_mae(metrics.get('rmse'))
+                })
+            
+            summary_df = pd.DataFrame(summary_data)
+            st.dataframe(summary_df, hide_index=True, use_container_width=True)
 
 # 予測統計
 st.header("4️⃣ 予測統計")
