@@ -426,6 +426,7 @@ if model_info:
         
         if base_info.get('loaded'):
             st.success("✅ モデル読み込み成功")
+            st.info("📌 初期学習済み・更新なし")
             
             metrics_col1, metrics_col2 = st.columns(2)
             with metrics_col1:
@@ -434,8 +435,6 @@ if model_info:
                 mae = base_info.get('mae_10min')
                 emoji = get_accuracy_emoji(mae)
                 st.metric(f"MAE (10分先) {emoji}", format_mae(mae))
-            
-            st.info("📌 初期学習済み・更新なし")
         else:
             st.error("❌ モデル読み込み失敗")
     
@@ -445,6 +444,7 @@ if model_info:
         
         if adaptive_info.get('loaded'):
             st.success("✅ モデル読み込み成功")
+            st.info("📈 リアルタイムで継続学習中")
             
             metrics_col1, metrics_col2 = st.columns(2)
             with metrics_col1:
@@ -454,8 +454,6 @@ if model_info:
                 mae = adaptive_info.get('mae_10min')
                 emoji = get_accuracy_emoji(mae)
                 st.metric(f"MAE (10分先) {emoji}", format_mae(mae))
-            
-            st.info("📈 リアルタイムで継続学習中")
         else:
             st.error("❌ モデル読み込み失敗")
 else:
