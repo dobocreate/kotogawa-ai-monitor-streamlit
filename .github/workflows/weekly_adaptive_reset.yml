@@ -65,12 +65,14 @@ jobs:
     - name: モデル状態の確認
       run: |
         cd scripts
-        python -c "
+        cat > check_model_status.py << 'EOF'
         from river_dual_model_predictor import RiverDualModelPredictor
         predictor = RiverDualModelPredictor()
         if predictor.load_models():
             predictor.print_status()
-        "
+        EOF
+        python check_model_status.py
+        rm check_model_status.py
     
     - name: 変更のコミットとプッシュ
       run: |
