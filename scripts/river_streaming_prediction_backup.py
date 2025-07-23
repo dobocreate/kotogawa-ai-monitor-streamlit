@@ -129,9 +129,6 @@ class RiverStreamingPredictor:
         self.model_path = Path(model_path)
         self.model_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # 履歴データバッファ（90分分 = 9ステップ + 現在）
-        self.history_buffer = deque(maxlen=10)
-        
         # 遅延推定器
         self.delay_estimator = DynamicDelayEstimator()
         
@@ -189,12 +186,8 @@ class RiverStreamingPredictor:
                 )
             )
     
-    def update_history_buffer(self, data: Dict):
-        """履歴バッファを更新"""
-        self.history_buffer.append(data)
-    
     def extract_features(self, data: Dict) -> Dict:
-        """データから特徴量を抽出（Phase 2実装）"""
+        """データから特徴量を抽出（仕様書準拠）"""
         # 基本データ取得
         timestamp = data.get('data_time', data.get('timestamp', ''))
         
@@ -219,98 +212,13 @@ class RiverStreamingPredictor:
                 pass
         self._last_timestamp = timestamp
         
-        # 基本特徴量
+        # 仕様書準拠の特徴量（数値のみ）
         features = {
             'water_level': float(level),
             'dam_outflow': float(outflow),
             'rainfall': float(rainfall),
             'elapsed_min': float(elapsed_min)
         }
-        
-        # Phase 1: 時系列生データ（過去90分）
-        history = list(self.history_buffer)
-        for i in range(1, min(10, len(history) + 1)):
-            if i <= len(history):
-                hist_data = history[-i]
-                # ダム放流量の時系列
-                features[f'dam_outflow_t-{i*10}'] = float(hist_data.get('dam', {}).get('outflow', 0))
-                # 降雨量の時系列
-                features[f'rainfall_t-{i*10}'] = float(hist_data.get('rainfall', {}).get('hourly', 0))
-                # 水位の時系列（10, 30, 60分前のみ）
-                if i in [1, 3, 6]:
-                    features[f'water_level_t-{i*10}'] = float(hist_data.get('river', {}).get('water_level', 0))
-            else:
-                # データがない場合はデフォルト値
-                features[f'dam_outflow_t-{i*10}'] = 0.0
-                features[f'rainfall_t-{i*10}'] = 0.0
-                if i in [1, 3, 6]:
-                    features[f'water_level_t-{i*10}'] = level  # 現在値で補完
-        
-        # Phase 1: 基本集約統計量
-        if len(history) >= 3:
-            recent = history[-3:]
-            features['dam_sum_recent'] = sum(d.get('dam', {}).get('outflow', 0) for d in recent)
-            features['dam_max_recent'] = max(d.get('dam', {}).get('outflow', 0) for d in recent)
-            features['rain_sum_recent'] = sum(d.get('rainfall', {}).get('hourly', 0) for d in recent)
-        
-        if len(history) >= 9:
-            all_data = history[-9:]
-            features['dam_sum_90min'] = sum(d.get('dam', {}).get('outflow', 0) for d in all_data)
-            features['dam_max_90min'] = max(d.get('dam', {}).get('outflow', 0) for d in all_data)
-            features['rain_sum_90min'] = sum(d.get('rainfall', {}).get('hourly', 0) for d in all_data)
-        
-        # Phase 2: 時間窓集約特徴量
-        if len(history) >= 3:
-            recent_30 = history[-3:]
-            features['dam_sum_0_30min'] = sum(d.get('dam', {}).get('outflow', 0) for d in recent_30)
-            features['dam_max_0_30min'] = max(d.get('dam', {}).get('outflow', 0) for d in recent_30)
-            features['dam_avg_0_30min'] = np.mean([d.get('dam', {}).get('outflow', 0) for d in recent_30])
-            features['rain_sum_0_30min'] = sum(d.get('rainfall', {}).get('hourly', 0) for d in recent_30)
-        
-        if len(history) >= 6:
-            middle_30 = history[-6:-3]
-            features['dam_sum_30_60min'] = sum(d.get('dam', {}).get('outflow', 0) for d in middle_30)
-            features['dam_max_30_60min'] = max(d.get('dam', {}).get('outflow', 0) for d in middle_30)
-            features['dam_avg_30_60min'] = np.mean([d.get('dam', {}).get('outflow', 0) for d in middle_30])
-            features['rain_sum_30_60min'] = sum(d.get('rainfall', {}).get('hourly', 0) for d in middle_30)
-        
-        if len(history) >= 9:
-            older_30 = history[-9:-6]
-            features['dam_sum_60_90min'] = sum(d.get('dam', {}).get('outflow', 0) for d in older_30)
-            features['dam_max_60_90min'] = max(d.get('dam', {}).get('outflow', 0) for d in older_30)
-            features['dam_avg_60_90min'] = np.mean([d.get('dam', {}).get('outflow', 0) for d in older_30])
-            features['rain_sum_60_90min'] = sum(d.get('rainfall', {}).get('hourly', 0) for d in older_30)
-        
-        # Phase 2: トレンド・パターン特徴量
-        # 水位変化率
-        if len(history) >= 1:
-            features['water_level_change_10min'] = level - float(history[-1].get('river', {}).get('water_level', level))
-        if len(history) >= 3:
-            features['water_level_change_30min'] = level - float(history[-3].get('river', {}).get('water_level', level))
-        if len(history) >= 6:
-            features['water_level_change_60min'] = level - float(history[-6].get('river', {}).get('water_level', level))
-        
-        # ダム放流のトレンド
-        if len(history) >= 3:
-            dam_recent = float(history[-1].get('dam', {}).get('outflow', 0))
-            dam_30min = float(history[-3].get('dam', {}).get('outflow', 0))
-            features['dam_trend_recent'] = dam_recent - dam_30min
-        
-        if len(history) >= 6:
-            dam_30min = float(history[-3].get('dam', {}).get('outflow', 0))
-            dam_60min = float(history[-6].get('dam', {}).get('outflow', 0))
-            features['dam_trend_older'] = dam_30min - dam_60min
-        
-        # ピーク検出
-        if len(history) >= 9:
-            dam_values = [d.get('dam', {}).get('outflow', 0) for d in history[-9:]]
-            features['dam_peak_90min'] = max(dam_values)
-            features['dam_peak_timing'] = (dam_values.index(max(dam_values)) + 1) * 10  # 何分前がピークか
-            
-            # 変動性
-            features['dam_std_90min'] = np.std(dam_values)
-            rain_values = [d.get('rainfall', {}).get('hourly', 0) for d in history[-9:]]
-            features['rain_std_90min'] = np.std(rain_values)
         
         # タイムスタンプは別途保存（特徴量には含めない）
         features['_timestamp'] = timestamp
@@ -327,9 +235,6 @@ class RiverStreamingPredictor:
         Returns:
             predictions: 10分刻みの予測リスト
         """
-        # 履歴バッファを更新
-        self.update_history_buffer(data)
-        
         # 特徴量抽出
         features = self.extract_features(data)
         
@@ -420,9 +325,6 @@ class RiverStreamingPredictor:
             data: 現在の観測データ
             future_data: 将来の実測データ（利用可能な場合）
         """
-        # 履歴バッファを更新
-        self.update_history_buffer(data)
-        
         # 特徴量抽出
         features = self.extract_features(data)
         current_level = features['water_level']
@@ -549,8 +451,7 @@ class RiverStreamingPredictor:
             'n_samples': self.n_samples,
             'delay_estimator': self.delay_estimator,
             'level_stats': self.level_stats,
-            'mae_rolling': self.mae_rolling,
-            'history_buffer': self.history_buffer  # 履歴バッファも保存
+            'mae_rolling': self.mae_rolling
         }
         
         with open(self.model_path, 'wb') as f:
@@ -582,9 +483,6 @@ class RiverStreamingPredictor:
                 self.delay_estimator = model_data.get('delay_estimator', self.delay_estimator)
                 self.level_stats = model_data.get('level_stats', self.level_stats)
                 self.mae_rolling = model_data.get('mae_rolling', self.mae_rolling)
-                
-                # 履歴バッファ（新規追加）
-                self.history_buffer = model_data.get('history_buffer', deque(maxlen=10))
                 
             print(f"モデル読み込み成功: {self.n_samples}サンプル学習済み")
         except Exception as e:

@@ -6,6 +6,7 @@
 
 import json
 import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
 import sys
@@ -381,7 +382,7 @@ def train_models_with_demo_csv():
         current_data = record['current']
         predictions = model.predict_one(current_data)
         
-        # 学習実行
+        # 学習実行（learn_oneが履歴バッファを自動更新）
         model.learn_one(current_data, record['future'])
     
     print(f"  学習進捗: {len(train_records)}/{len(train_records)} (100.0%)")

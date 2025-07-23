@@ -86,14 +86,14 @@ class RiverDualModelPredictor:
             return {}
         return self.adaptive_model.extract_features(data)
     
-    def learn_one(self, features: Dict[str, float], target: float, step: int = 0):
+    def learn_one(self, data: Dict[str, Any], future_data: Optional[List[Dict]] = None):
         """適応モデルのみ学習"""
         if not self.models_loaded:
             if not self.load_models():
                 return
                 
         # 適応モデルのみ学習
-        self.adaptive_model.learn_one(features, target, step)
+        self.adaptive_model.learn_one(data, future_data)
     
     def save_model(self, path: Optional[str] = None):
         """適応モデルのみ保存（基本モデルは変更しない）"""
