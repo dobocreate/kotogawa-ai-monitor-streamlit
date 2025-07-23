@@ -238,7 +238,12 @@ class RiverStreamingPredictor:
             'water_level': float(level),
             'dam_outflow': float(outflow),
             'rainfall': float(rainfall),
-            'elapsed_min': float(elapsed_min)
+            'elapsed_min': float(elapsed_min),
+            # 平常時との差分（重要な特徴量）
+            'water_level_diff_from_normal': float(level) - 2.75,  # 平常時水位との差
+            'dam_outflow_diff_from_normal': float(outflow) - 4.5,  # 平常時放流量との差
+            'is_above_normal': 1.0 if float(level) > 2.75 else 0.0,  # 平常時より高いか
+            'outflow_ratio': float(outflow) / 4.5 if outflow > 0 else 0.0  # 平常時の何倍か
         }
         
         # Phase 1: 時系列生データ（過去90分）
@@ -346,6 +351,16 @@ class RiverStreamingPredictor:
             max_change = max(water_levels[i] - water_levels[i-1] for i in range(1, len(water_levels)))
             features['max_water_change_90min'] = max_change
             features['is_rapid_rise'] = 1.0 if max_change > 0.1 else 0.0  # 10cm以上の上昇
+            
+            # 異常状態の検出
+            max_level_90min = max(water_levels)
+            features['is_flood_risk'] = 1.0 if max_level_90min > 5.0 else 0.0  # 5m以上は洪水リスク
+            features['is_high_water'] = 1.0 if max_level_90min > 4.0 else 0.0  # 4m以上は高水位
+            
+            # 放流量の異常検出
+            max_outflow = max(dam_values)
+            features['is_emergency_discharge'] = 1.0 if max_outflow > 50.0 else 0.0  # 50m³/s以上は緊急放流
+            features['is_high_discharge'] = 1.0 if max_outflow > 20.0 else 0.0  # 20m³/s以上は高放流
         
         # タイムスタンプは別途保存（特徴量には含めない）
         features['_timestamp'] = timestamp
