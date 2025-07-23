@@ -161,30 +161,44 @@ class RiverStreamingPredictor:
             self.load_model()
     
     def _build_pipeline(self):
-        """仕様書準拠のパイプライン構築"""
-        # 特徴量エンジニアリングパイプライン
-        # River 0.22.0対応の構成
+        """高精度予測のための最適化されたパイプライン"""
+        # メインパイプライン（10分先予測用）
         self.pipeline = compose.Pipeline(
-            # 標準化のみ（StatImputerは削除）
+            # 標準化
             pp.StandardScaler(),
-            # ARFRegressor（仕様書準拠）
+            # より複雑なパターンを学習できるように最適化
             forest.ARFRegressor(
-                n_models=15,
-                max_depth=15,
-                drift_detector=drift.ADWIN(delta=1e-3),
+                n_models=50,  # モデル数を大幅増加（15→50）
+                max_depth=30,  # より深い木を許可（15→30）
+                drift_detector=drift.ADWIN(delta=1e-4),  # より敏感なドリフト検出
+                leaf_prediction='adaptive',  # 適応的な葉の予測
+                grace_period=50,  # 初期学習期間
                 seed=42
             )
         )
         
-        # 各ステップ用のモデル（互換性のため維持）
+        # 各ステップ用のモデル（長期予測用）
         self.models = {}
         for step in range(1, 19):
+            # 予測時間に応じてモデルの複雑さを調整
+            if step <= 6:  # 60分以内
+                n_models = 40
+                max_depth = 25
+            elif step <= 12:  # 120分以内
+                n_models = 30
+                max_depth = 20
+            else:  # 180分まで
+                n_models = 25
+                max_depth = 20
+            
             self.models[f'step_{step}'] = compose.Pipeline(
                 pp.StandardScaler(),
                 forest.ARFRegressor(
-                    n_models=10,
-                    max_depth=12,
-                    drift_detector=drift.ADWIN(delta=1e-3),
+                    n_models=n_models,
+                    max_depth=max_depth,
+                    drift_detector=drift.ADWIN(delta=1e-4),
+                    leaf_prediction='adaptive',
+                    grace_period=30,
                     seed=42 + step
                 )
             )
@@ -281,27 +295,42 @@ class RiverStreamingPredictor:
             features['dam_avg_60_90min'] = np.mean([d.get('dam', {}).get('outflow', 0) for d in older_30])
             features['rain_sum_60_90min'] = sum(d.get('rainfall', {}).get('hourly', 0) for d in older_30)
         
-        # Phase 2: トレンド・パターン特徴量
+        # Phase 2: トレンド・パターン特徴量（変化率を重視）
         # 水位変化率
         if len(history) >= 1:
-            features['water_level_change_10min'] = level - float(history[-1].get('river', {}).get('water_level', level))
+            level_10min_ago = float(history[-1].get('river', {}).get('water_level', level))
+            features['water_level_change_10min'] = level - level_10min_ago
+            features['water_level_change_rate_10min'] = (level - level_10min_ago) * 6  # 時間あたり変化率
+            
         if len(history) >= 3:
-            features['water_level_change_30min'] = level - float(history[-3].get('river', {}).get('water_level', level))
+            level_30min_ago = float(history[-3].get('river', {}).get('water_level', level))
+            features['water_level_change_30min'] = level - level_30min_ago
+            features['water_level_change_rate_30min'] = (level - level_30min_ago) * 2  # 時間あたり変化率
+            
+            # 加速度（変化率の変化）
+            if len(history) >= 1:
+                features['water_level_acceleration'] = features['water_level_change_10min'] - \
+                    (level_30min_ago - float(history[-2].get('river', {}).get('water_level', level)))
+            
         if len(history) >= 6:
-            features['water_level_change_60min'] = level - float(history[-6].get('river', {}).get('water_level', level))
+            level_60min_ago = float(history[-6].get('river', {}).get('water_level', level))
+            features['water_level_change_60min'] = level - level_60min_ago
+            features['water_level_change_rate_60min'] = level - level_60min_ago  # 時間あたり変化率
         
-        # ダム放流のトレンド
+        # ダム放流のトレンド（変化の影響を強調）
         if len(history) >= 3:
             dam_recent = float(history[-1].get('dam', {}).get('outflow', 0))
             dam_30min = float(history[-3].get('dam', {}).get('outflow', 0))
             features['dam_trend_recent'] = dam_recent - dam_30min
+            features['dam_change_impact'] = (dam_recent - dam_30min) * 0.01  # 放流変化の影響係数
         
         if len(history) >= 6:
             dam_30min = float(history[-3].get('dam', {}).get('outflow', 0))
             dam_60min = float(history[-6].get('dam', {}).get('outflow', 0))
             features['dam_trend_older'] = dam_30min - dam_60min
+            features['dam_trend_acceleration'] = features.get('dam_trend_recent', 0) - (dam_30min - dam_60min)
         
-        # ピーク検出
+        # ピーク検出と急激な変化の検出
         if len(history) >= 9:
             dam_values = [d.get('dam', {}).get('outflow', 0) for d in history[-9:]]
             features['dam_peak_90min'] = max(dam_values)
@@ -311,6 +340,12 @@ class RiverStreamingPredictor:
             features['dam_std_90min'] = np.std(dam_values)
             rain_values = [d.get('rainfall', {}).get('hourly', 0) for d in history[-9:]]
             features['rain_std_90min'] = np.std(rain_values)
+            
+            # 急激な変化の検出
+            water_levels = [d.get('river', {}).get('water_level', level) for d in history[-9:]] + [level]
+            max_change = max(water_levels[i] - water_levels[i-1] for i in range(1, len(water_levels)))
+            features['max_water_change_90min'] = max_change
+            features['is_rapid_rise'] = 1.0 if max_change > 0.1 else 0.0  # 10cm以上の上昇
         
         # タイムスタンプは別途保存（特徴量には含めない）
         features['_timestamp'] = timestamp
@@ -441,7 +476,17 @@ class RiverStreamingPredictor:
                     if step == 1:
                         # メインパイプラインで学習（タイムスタンプを除外）
                         learning_features = {k: v for k, v in features.items() if not k.startswith('_')}
-                        self.pipeline.learn_one(learning_features, actual_level)
+                        
+                        # 急激な変化を重視した学習
+                        change_magnitude = abs(actual_level - current_level)
+                        if change_magnitude > 0.1:  # 10cm以上の変化
+                            # 重要なパターンは複数回学習（過学習を避けるため最大3回）
+                            repeat_times = min(3, int(change_magnitude * 10))
+                            for _ in range(repeat_times):
+                                self.pipeline.learn_one(learning_features, actual_level)
+                        else:
+                            # 通常の学習
+                            self.pipeline.learn_one(learning_features, actual_level)
                         
                         # ドリフト検出
                         pred = self.pipeline.predict_one(learning_features)
@@ -467,7 +512,14 @@ class RiverStreamingPredictor:
                     model_key = f'step_{step}'
                     # タイムスタンプを除外して学習
                     step_learning_features = {k: v for k, v in step_features.items() if not k.startswith('_')}
-                    self.models[model_key].learn_one(step_learning_features, actual_change)
+                    
+                    # 長期予測でも急激な変化を重視
+                    if abs(actual_change) > 0.05:  # 5cm以上の変化
+                        repeat_times = min(2, int(abs(actual_change) * 20))
+                        for _ in range(repeat_times):
+                            self.models[model_key].learn_one(step_learning_features, actual_change)
+                    else:
+                        self.models[model_key].learn_one(step_learning_features, actual_change)
                     
                     # メトリクス更新
                     pred_change = self.models[model_key].predict_one(step_learning_features)
