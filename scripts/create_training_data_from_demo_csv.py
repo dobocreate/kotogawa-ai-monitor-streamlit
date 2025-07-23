@@ -6,9 +6,10 @@
 
 import json
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import sys
+from typing import Dict, Any
 
 sys.path.append(str(Path(__file__).parent))
 
@@ -195,6 +196,100 @@ def create_training_data_from_demo_csv():
     return output_path
 
 
+def create_diagnostics_for_initial_model(model, training_records: list) -> Dict[str, Any]:
+    """初期モデル学習の診断データを生成"""
+    from river import metrics
+    
+    print("\n診断データを生成中...")
+    
+    # 各ステップのメトリクスを初期化
+    step_metrics = {}
+    for minutes in range(10, 190, 10):
+        step_metrics[f"{minutes}min"] = {
+            'mae': metrics.MAE(),
+            'rmse': metrics.RMSE()
+        }
+    
+    # 最後の100レコードで精度を評価
+    eval_records = training_records[-100:] if len(training_records) > 100 else training_records
+    
+    for record in eval_records:
+        current_data = record['current']
+        predictions = model.predict_one(current_data)
+        
+        # predictionsがリストの場合、辞書に変換
+        if isinstance(predictions, list):
+            pred_dict = {}
+            for i, pred in enumerate(predictions):
+                minutes = (i + 1) * 10
+                pred_dict[f"{minutes}min"] = pred.get('water_level') if isinstance(pred, dict) else pred
+            predictions = pred_dict
+        
+        # 各ステップの予測と実測値を比較
+        for j, future_data in enumerate(record['future']):
+            minutes = (j + 1) * 10
+            step_key = f"{minutes}min"
+            
+            if step_key in step_metrics:
+                pred_value = predictions.get(step_key, 0) if isinstance(predictions, dict) else 0
+                true_value = future_data['river'].get('water_level', 0)
+                
+                if pred_value is not None and true_value is not None:
+                    step_metrics[step_key]['mae'].update(true_value, pred_value)
+                    step_metrics[step_key]['rmse'].update(true_value, pred_value)
+    
+    # メトリクスを辞書形式に変換
+    metrics_by_step = {}
+    for step_key, metrics_dict in step_metrics.items():
+        metrics_by_step[step_key] = {
+            'mae': metrics_dict['mae'].get() if hasattr(metrics_dict['mae'], 'get') else None,
+            'rmse': metrics_dict['rmse'].get() if hasattr(metrics_dict['rmse'], 'get') else None
+        }
+    
+    # 診断データの構築
+    diagnostics_data = {
+        'timestamp': datetime.now().isoformat(),
+        'model_type': 'initial_training',
+        'execution_info': {
+            'start_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'source': 'demo_csv_training',
+            'description': 'デモCSVデータによる初期学習'
+        },
+        'training_stats': {
+            'total_samples': len(training_records),
+            'data_source': 'demo_csv',
+            'period': '2023-06-25 to 2023-07-01'
+        },
+        'metrics_by_step': metrics_by_step,
+        'initial_metrics': {
+            'mae': metrics_by_step.get('10min', {}).get('mae'),
+            'rmse': metrics_by_step.get('10min', {}).get('rmse')
+        },
+        'final_metrics': {
+            'mae': metrics_by_step.get('10min', {}).get('mae'),
+            'rmse': metrics_by_step.get('10min', {}).get('rmse')
+        }
+    }
+    
+    return diagnostics_data
+
+
+def save_diagnostics(diagnostics_data: Dict[str, Any]):
+    """診断データをファイルに保存"""
+    diagnostics_dir = Path(__file__).parent.parent / "diagnostics"
+    diagnostics_dir.mkdir(exist_ok=True)
+    
+    # ファイル名を生成
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    file_path = diagnostics_dir / f"initial_training_{timestamp}.json"
+    
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(diagnostics_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"診断データを保存しました: {file_path}")
+    return file_path
+
+
 def train_models_with_demo_csv():
     """デモCSVデータでモデルを学習"""
     from river_streaming_prediction import RiverStreamingPredictor
@@ -233,6 +328,9 @@ def train_models_with_demo_csv():
     print(f"  進捗: {total_records}/{total_records} (100.0%)")
     print("学習完了")
     
+    # 診断データを生成
+    diagnostics_data = create_diagnostics_for_initial_model(model, training_data['records'])
+    
     # モデルを保存
     models_dir = Path(__file__).parent.parent / "models"
     models_dir.mkdir(exist_ok=True)
@@ -256,6 +354,16 @@ def train_models_with_demo_csv():
         mae = model.mae_metric.get()
         if mae > 0:
             print(f"平均絶対誤差 (MAE): {mae:.3f}m")
+    
+    # 診断データを保存
+    save_diagnostics(diagnostics_data)
+    
+    # 主要時間ポイントの精度を表示
+    print("\n主要時間ポイントの予測精度:")
+    for time_point in ['30min', '60min', '120min', '180min']:
+        mae = diagnostics_data['metrics_by_step'].get(time_point, {}).get('mae')
+        if mae:
+            print(f"  {time_point}: MAE = {mae:.3f}m")
 
 
 if __name__ == "__main__":

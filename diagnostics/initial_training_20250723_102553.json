@@ -1,0 +1,96 @@
+{
+  "timestamp": "2025-07-23T10:25:53.091851",
+  "model_type": "initial_training",
+  "execution_info": {
+    "start_time": "2025-07-23 10:25:53",
+    "source": "demo_csv_training",
+    "description": "デモCSVデータによる初期学習"
+  },
+  "training_stats": {
+    "total_samples": 839,
+    "data_source": "demo_csv",
+    "period": "2023-06-25 to 2023-07-01"
+  },
+  "metrics_by_step": {
+    "10min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "20min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "30min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "40min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "50min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "60min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "70min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "80min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "90min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "100min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "110min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "120min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "130min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "140min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "150min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "160min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "170min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    },
+    "180min": {
+      "mae": 0.0,
+      "rmse": 0.0
+    }
+  },
+  "initial_metrics": {
+    "mae": 0.0,
+    "rmse": 0.0
+  },
+  "final_metrics": {
+    "mae": 0.0,
+    "rmse": 0.0
+  }
+}
