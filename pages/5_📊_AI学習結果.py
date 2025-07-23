@@ -243,7 +243,7 @@ def display_key_timepoint_accuracy(metrics_by_step):
         if mae_180 is not None:
             st.caption("避難準備検討用")
     
-    # 主要ポイントのグラフ
+    # 主要ポイントのグラフ（0の値も含めて表示）
     if any(v is not None for v in key_points.values()):
         fig = go.Figure()
         
@@ -613,11 +613,25 @@ with model_tabs[1]:  # 適応モデル
 # 3. 予測精度分析セクション
 st.header("3️⃣ 予測精度分析")
 
+# デバッグ情報を表示
+if latest_diagnostics:
+    st.info(f"診断データを読み込みました: {latest_diagnostics.get('model_type', 'unknown')} - {latest_diagnostics.get('execution_info', {}).get('start_time', 'unknown')}")
+else:
+    st.warning("診断データが見つかりません")
+
 # 最新の診断結果から精度情報を表示
 if latest_diagnostics:
     # ステップ別精度
     metrics_by_step = latest_diagnostics.get('metrics_by_step', {})
+    st.write(f"metrics_by_step の内容: {len(metrics_by_step)} ステップ")
     if metrics_by_step:
+        # 主要時間ポイントのMAE値を確認
+        mae_30 = metrics_by_step.get('30min', {}).get('mae')
+        mae_60 = metrics_by_step.get('60min', {}).get('mae')
+        mae_120 = metrics_by_step.get('120min', {}).get('mae')
+        mae_180 = metrics_by_step.get('180min', {}).get('mae')
+        st.write(f"主要時間ポイントのMAE: 30分={mae_30}, 60分={mae_60}, 120分={mae_120}, 180分={mae_180}")
+        
         # 主要時間ポイントの精度表示
         st.subheader("🎯 主要時間ポイントの予測精度")
         display_key_timepoint_accuracy(metrics_by_step)
@@ -643,6 +657,10 @@ if latest_diagnostics:
             
             summary_df = pd.DataFrame(summary_data)
             st.dataframe(summary_df, hide_index=True, use_container_width=True)
+    else:
+        st.info("精度データがまだ生成されていません。学習プロセスが実行されるのをお待ちください。")
+else:
+    st.info("診断データがありません。初期学習または適応モデルの学習を実行してください。")
 
 # 予測統計
 st.header("4️⃣ 予測統計")
