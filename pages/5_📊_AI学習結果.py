@@ -78,20 +78,32 @@ def load_prediction_stats():
 
 
 def load_recent_diagnostics():
-    """最新の診断結果を読み込み"""
+    """最新の診断結果を読み込み（metrics_by_stepを含むもの）"""
     diagnostics_dir = Path('diagnostics')
     if not diagnostics_dir.exists():
         return None
     
-    # 最新のファイルを探す
+    # metrics_by_stepを含む診断ファイルを探す
     json_files = list(diagnostics_dir.glob('*.json'))
     if not json_files:
         return None
     
-    latest_file = max(json_files, key=lambda p: p.stat().st_mtime)
+    # 最新のファイルから順に確認
+    sorted_files = sorted(json_files, key=lambda p: p.stat().st_mtime, reverse=True)
     
+    for json_file in sorted_files:
+        try:
+            with open(json_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                # metrics_by_stepを含むファイルを優先
+                if 'metrics_by_step' in data and data['metrics_by_step']:
+                    return data
+        except:
+            continue
+    
+    # metrics_by_stepを含むファイルが見つからない場合は最新ファイルを返す
     try:
-        with open(latest_file, 'r', encoding='utf-8') as f:
+        with open(sorted_files[0], 'r', encoding='utf-8') as f:
             return json.load(f)
     except:
         return None
@@ -615,7 +627,11 @@ st.header("3️⃣ 予測精度分析")
 
 # デバッグ情報を表示
 if latest_diagnostics:
-    st.info(f"診断データを読み込みました: {latest_diagnostics.get('model_type', 'unknown')} - {latest_diagnostics.get('execution_info', {}).get('start_time', 'unknown')}")
+    model_type = latest_diagnostics.get('model_type', 'unknown')
+    exec_info = latest_diagnostics.get('execution_info', {})
+    start_time = exec_info.get('start_time', 'unknown') if exec_info else 'unknown'
+    has_metrics = 'metrics_by_step' in latest_diagnostics
+    st.info(f"診断データを読み込みました: {model_type} - {start_time} - metrics_by_step: {has_metrics}")
 else:
     st.warning("診断データが見つかりません")
 
@@ -659,6 +675,20 @@ if latest_diagnostics:
             st.dataframe(summary_df, hide_index=True, use_container_width=True)
     else:
         st.info("精度データがまだ生成されていません。学習プロセスが実行されるのをお待ちください。")
+        
+        # 初期学習データを手動で読み込むオプション
+        if st.button("🔍 初期学習データを確認", key="load_initial"):
+            initial_files = [f for f in Path('diagnostics').glob('initial_training_*.json')]
+            if initial_files:
+                latest_initial = max(initial_files, key=lambda p: p.stat().st_mtime)
+                with open(latest_initial, 'r', encoding='utf-8') as f:
+                    initial_data = json.load(f)
+                st.success(f"初期学習データを読み込みました: {latest_initial.name}")
+                
+                # 初期学習の精度を表示
+                if 'metrics_by_step' in initial_data:
+                    st.subheader("🎯 初期学習の主要時間ポイントの予測精度")
+                    display_key_timepoint_accuracy(initial_data['metrics_by_step'])
 else:
     st.info("診断データがありません。初期学習または適応モデルの学習を実行してください。")
 
