@@ -157,33 +157,33 @@ class KotogawaDataCollector:
         if not soup:
             return {
                 'dam': {
-                    'water_level': None,
-                    'storage_rate': None,
-                    'inflow': None,
-                    'outflow': None,
-                    'storage_change': None,
+                    'water_level': 0.0,
+                    'storage_rate': 0.0,
+                    'inflow': 0.0,
+                    'outflow': 0.0,
+                    'storage_change': 0.0,
                     'actual_observation_time': None
                 },
                 'rainfall': {
-                    'hourly': None,
-                    'cumulative': None,
-                    'change': None
+                    'hourly': 0,
+                    'cumulative': 0,
+                    'change': 0
                 }
             }
         
         dam_data = {
-            'water_level': None,
-            'storage_rate': None,
-            'inflow': None,
-            'outflow': None,
-            'storage_change': None,
+            'water_level': 0.0,
+            'storage_rate': 0.0,
+            'inflow': 0.0,
+            'outflow': 0.0,
+            'storage_change': 0.0,
             'actual_observation_time': None
         }
         
         rainfall_data = {
-            'hourly': None,
-            'cumulative': None,
-            'change': None
+            'hourly': 0,
+            'cumulative': 0,
+            'change': 0
         }
         
         try:
@@ -441,16 +441,16 @@ class KotogawaDataCollector:
         
         if not soup:
             return {
-                'water_level': None,
-                'level_change': None,
+                'water_level': 0.0,
+                'level_change': 0.0,
                 'status': 'データなし',
                 'actual_observation_time': None
             }
         
         river_data = {
-            'water_level': None,
-            'level_change': None,
-            'status': None,
+            'water_level': 0.0,
+            'level_change': 0.0,
+            'status': '不明',
             'actual_observation_time': None
         }
         
@@ -1396,16 +1396,16 @@ LAST_UPDATE = "{timestamp}"
                 'error_type': type(e).__name__
             })
             data_collected['dam'] = {
-                'water_level': None,
-                'storage_rate': None,
-                'inflow': None,
-                'outflow': None,
-                'storage_change': None
+                'water_level': 0.0,
+                'storage_rate': 0.0,
+                'inflow': 0.0,
+                'outflow': 0.0,
+                'storage_change': 0.0
             }
             data_collected['rainfall'] = {
-                'hourly': None,
-                'cumulative': None,
-                'change': None
+                'hourly': 0,
+                'cumulative': 0,
+                'change': 0
             }
         
         # 河川データ収集
@@ -1427,9 +1427,9 @@ LAST_UPDATE = "{timestamp}"
                 'error_type': type(e).__name__
             })
             data_collected['river'] = {
-                'water_level': None,
-                'level_change': None,
-                'status': None
+                'water_level': 0.0,
+                'level_change': 0.0,
+                'status': '不明'
             }
         
         # 降雨データはダムデータと同時に取得済み
@@ -1644,8 +1644,8 @@ def main():
         error_data = {
             'timestamp': current_time.isoformat(),
             'data_time': None,
-            'dam': {'water_level': None, 'storage_rate': None, 'inflow': None, 'outflow': None, 'storage_change': None},
-            'river': {'water_level': None, 'level_change': 0.0, 'status': '不明'},
+            'dam': {'water_level': 0.0, 'storage_rate': 0.0, 'inflow': 0.0, 'outflow': 0.0, 'storage_change': 0.0},
+            'river': {'water_level': 0.0, 'level_change': 0.0, 'status': '不明'},
             'rainfall': {'hourly': 0, 'cumulative': 0, 'change': 0},
             'weather': {'today': {'weather_text': None, 'temp_max': None, 'temp_min': None}, 'tomorrow': {'weather_text': None, 'temp_max': None, 'temp_min': None}, 'update_time': None}
         }

@@ -253,6 +253,15 @@ class RiverStreamingPredictor:
         # スコアが異常に高い場合は外れ値
         return score > 0.8 if score is not None else False
     
+    def _safe_float(self, value, default=0.0):
+        """安全にfloatに変換する"""
+        if value is None:
+            return default
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+    
     def extract_features(self, data: Dict) -> Dict:
         """データから特徴量を抽出（Phase 2実装）"""
         # 基本データ取得
@@ -260,13 +269,13 @@ class RiverStreamingPredictor:
         
         # 安全な値取得（Noneの場合はデフォルト値を使用）
         river_data = data.get('river') or {}
-        level = river_data.get('water_level') if river_data.get('water_level') is not None else 0
+        level = self._safe_float(river_data.get('water_level'), 0)
         
         dam_data = data.get('dam') or {}
-        outflow = dam_data.get('outflow') if dam_data.get('outflow') is not None else 0
+        outflow = self._safe_float(dam_data.get('outflow'), 0)
         
         rainfall_data = data.get('rainfall') or {}
-        rainfall = rainfall_data.get('hourly') if rainfall_data.get('hourly') is not None else 0
+        rainfall = self._safe_float(rainfall_data.get('hourly'), 0)
         
         # 前回観測からの経過時間計算
         elapsed_min = 10  # デフォルト10分
@@ -281,15 +290,15 @@ class RiverStreamingPredictor:
         
         # 基本特徴量
         features = {
-            'water_level': float(level),
-            'dam_outflow': float(outflow),
-            'rainfall': float(rainfall),
+            'water_level': level,
+            'dam_outflow': outflow,
+            'rainfall': rainfall,
             'elapsed_min': float(elapsed_min),
             # 平常時との差分（重要な特徴量）
-            'water_level_diff_from_normal': float(level) - 2.75,  # 平常時水位との差
-            'dam_outflow_diff_from_normal': float(outflow) - 4.5,  # 平常時放流量との差
-            'is_above_normal': 1.0 if float(level) > 2.75 else 0.0,  # 平常時より高いか
-            'outflow_ratio': float(outflow) / 4.5 if outflow > 0 else 0.0  # 平常時の何倍か
+            'water_level_diff_from_normal': level - 2.75,  # 平常時水位との差
+            'dam_outflow_diff_from_normal': outflow - 4.5,  # 平常時放流量との差
+            'is_above_normal': 1.0 if level > 2.75 else 0.0,  # 平常時より高いか
+            'outflow_ratio': outflow / 4.5 if outflow > 0 else 0.0  # 平常時の何倍か
         }
         
         # Phase 1: 時系列生データ（過去90分）
@@ -298,12 +307,12 @@ class RiverStreamingPredictor:
             if i <= len(history):
                 hist_data = history[-i]
                 # ダム放流量の時系列
-                features[f'dam_outflow_t-{i*10}'] = float(hist_data.get('dam', {}).get('outflow', 0))
+                features[f'dam_outflow_t-{i*10}'] = self._safe_float(hist_data.get('dam', {}).get('outflow'), 0)
                 # 降雨量の時系列
-                features[f'rainfall_t-{i*10}'] = float(hist_data.get('rainfall', {}).get('hourly', 0))
+                features[f'rainfall_t-{i*10}'] = self._safe_float(hist_data.get('rainfall', {}).get('hourly'), 0)
                 # 水位の時系列（10, 30, 60分前のみ）
                 if i in [1, 3, 6]:
-                    features[f'water_level_t-{i*10}'] = float(hist_data.get('river', {}).get('water_level', 0))
+                    features[f'water_level_t-{i*10}'] = self._safe_float(hist_data.get('river', {}).get('water_level'), 0)
             else:
                 # データがない場合はデフォルト値
                 features[f'dam_outflow_t-{i*10}'] = 0.0
@@ -314,86 +323,86 @@ class RiverStreamingPredictor:
         # Phase 1: 基本集約統計量
         if len(history) >= 3:
             recent = history[-3:]
-            features['dam_sum_recent'] = sum(d.get('dam', {}).get('outflow', 0) for d in recent)
-            features['dam_max_recent'] = max(d.get('dam', {}).get('outflow', 0) for d in recent)
-            features['rain_sum_recent'] = sum(d.get('rainfall', {}).get('hourly', 0) for d in recent)
+            features['dam_sum_recent'] = sum(self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in recent)
+            features['dam_max_recent'] = max(self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in recent)
+            features['rain_sum_recent'] = sum(self._safe_float(d.get('rainfall', {}).get('hourly'), 0) for d in recent)
         
         if len(history) >= 9:
             all_data = history[-9:]
-            features['dam_sum_90min'] = sum(d.get('dam', {}).get('outflow', 0) for d in all_data)
-            features['dam_max_90min'] = max(d.get('dam', {}).get('outflow', 0) for d in all_data)
-            features['rain_sum_90min'] = sum(d.get('rainfall', {}).get('hourly', 0) for d in all_data)
+            features['dam_sum_90min'] = sum(self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in all_data)
+            features['dam_max_90min'] = max(self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in all_data)
+            features['rain_sum_90min'] = sum(self._safe_float(d.get('rainfall', {}).get('hourly'), 0) for d in all_data)
         
         # Phase 2: 時間窓集約特徴量
         if len(history) >= 3:
             recent_30 = history[-3:]
-            features['dam_sum_0_30min'] = sum(d.get('dam', {}).get('outflow', 0) for d in recent_30)
-            features['dam_max_0_30min'] = max(d.get('dam', {}).get('outflow', 0) for d in recent_30)
-            features['dam_avg_0_30min'] = np.mean([d.get('dam', {}).get('outflow', 0) for d in recent_30])
-            features['rain_sum_0_30min'] = sum(d.get('rainfall', {}).get('hourly', 0) for d in recent_30)
+            features['dam_sum_0_30min'] = sum(self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in recent_30)
+            features['dam_max_0_30min'] = max(self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in recent_30)
+            features['dam_avg_0_30min'] = np.mean([self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in recent_30])
+            features['rain_sum_0_30min'] = sum(self._safe_float(d.get('rainfall', {}).get('hourly'), 0) for d in recent_30)
         
         if len(history) >= 6:
             middle_30 = history[-6:-3]
-            features['dam_sum_30_60min'] = sum(d.get('dam', {}).get('outflow', 0) for d in middle_30)
-            features['dam_max_30_60min'] = max(d.get('dam', {}).get('outflow', 0) for d in middle_30)
-            features['dam_avg_30_60min'] = np.mean([d.get('dam', {}).get('outflow', 0) for d in middle_30])
-            features['rain_sum_30_60min'] = sum(d.get('rainfall', {}).get('hourly', 0) for d in middle_30)
+            features['dam_sum_30_60min'] = sum(self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in middle_30)
+            features['dam_max_30_60min'] = max(self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in middle_30)
+            features['dam_avg_30_60min'] = np.mean([self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in middle_30])
+            features['rain_sum_30_60min'] = sum(self._safe_float(d.get('rainfall', {}).get('hourly'), 0) for d in middle_30)
         
         if len(history) >= 9:
             older_30 = history[-9:-6]
-            features['dam_sum_60_90min'] = sum(d.get('dam', {}).get('outflow', 0) for d in older_30)
-            features['dam_max_60_90min'] = max(d.get('dam', {}).get('outflow', 0) for d in older_30)
-            features['dam_avg_60_90min'] = np.mean([d.get('dam', {}).get('outflow', 0) for d in older_30])
-            features['rain_sum_60_90min'] = sum(d.get('rainfall', {}).get('hourly', 0) for d in older_30)
+            features['dam_sum_60_90min'] = sum(self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in older_30)
+            features['dam_max_60_90min'] = max(self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in older_30)
+            features['dam_avg_60_90min'] = np.mean([self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in older_30])
+            features['rain_sum_60_90min'] = sum(self._safe_float(d.get('rainfall', {}).get('hourly'), 0) for d in older_30)
         
         # Phase 2: トレンド・パターン特徴量（変化率を重視）
         # 水位変化率
         if len(history) >= 1:
-            level_10min_ago = float(history[-1].get('river', {}).get('water_level', level))
+            level_10min_ago = self._safe_float(history[-1].get('river', {}).get('water_level'), level)
             features['water_level_change_10min'] = level - level_10min_ago
             features['water_level_change_rate_10min'] = (level - level_10min_ago) * 6  # 時間あたり変化率
             
         if len(history) >= 3:
-            level_30min_ago = float(history[-3].get('river', {}).get('water_level', level))
+            level_30min_ago = self._safe_float(history[-3].get('river', {}).get('water_level'), level)
             features['water_level_change_30min'] = level - level_30min_ago
             features['water_level_change_rate_30min'] = (level - level_30min_ago) * 2  # 時間あたり変化率
             
             # 加速度（変化率の変化）
             if len(history) >= 1:
                 features['water_level_acceleration'] = features['water_level_change_10min'] - \
-                    (level_30min_ago - float(history[-2].get('river', {}).get('water_level', level)))
+                    (level_30min_ago - self._safe_float(history[-2].get('river', {}).get('water_level'), level))
             
         if len(history) >= 6:
-            level_60min_ago = float(history[-6].get('river', {}).get('water_level', level))
+            level_60min_ago = self._safe_float(history[-6].get('river', {}).get('water_level'), level)
             features['water_level_change_60min'] = level - level_60min_ago
             features['water_level_change_rate_60min'] = level - level_60min_ago  # 時間あたり変化率
         
         # ダム放流のトレンド（変化の影響を強調）
         if len(history) >= 3:
-            dam_recent = float(history[-1].get('dam', {}).get('outflow', 0))
-            dam_30min = float(history[-3].get('dam', {}).get('outflow', 0))
+            dam_recent = self._safe_float(history[-1].get('dam', {}).get('outflow'), 0)
+            dam_30min = self._safe_float(history[-3].get('dam', {}).get('outflow'), 0)
             features['dam_trend_recent'] = dam_recent - dam_30min
             features['dam_change_impact'] = (dam_recent - dam_30min) * 0.01  # 放流変化の影響係数
         
         if len(history) >= 6:
-            dam_30min = float(history[-3].get('dam', {}).get('outflow', 0))
-            dam_60min = float(history[-6].get('dam', {}).get('outflow', 0))
+            dam_30min = self._safe_float(history[-3].get('dam', {}).get('outflow'), 0)
+            dam_60min = self._safe_float(history[-6].get('dam', {}).get('outflow'), 0)
             features['dam_trend_older'] = dam_30min - dam_60min
             features['dam_trend_acceleration'] = features.get('dam_trend_recent', 0) - (dam_30min - dam_60min)
         
         # ピーク検出と急激な変化の検出
         if len(history) >= 9:
-            dam_values = [d.get('dam', {}).get('outflow', 0) for d in history[-9:]]
+            dam_values = [self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in history[-9:]]
             features['dam_peak_90min'] = max(dam_values)
             features['dam_peak_timing'] = (dam_values.index(max(dam_values)) + 1) * 10  # 何分前がピークか
             
             # 変動性
             features['dam_std_90min'] = np.std(dam_values)
-            rain_values = [d.get('rainfall', {}).get('hourly', 0) for d in history[-9:]]
+            rain_values = [self._safe_float(d.get('rainfall', {}).get('hourly'), 0) for d in history[-9:]]
             features['rain_std_90min'] = np.std(rain_values)
             
             # 急激な変化の検出
-            water_levels = [d.get('river', {}).get('water_level', level) for d in history[-9:]] + [level]
+            water_levels = [self._safe_float(d.get('river', {}).get('water_level'), level) for d in history[-9:]] + [level]
             max_change = max(water_levels[i] - water_levels[i-1] for i in range(1, len(water_levels)))
             features['max_water_change_90min'] = max_change
             features['is_rapid_rise'] = 1.0 if max_change > 0.1 else 0.0  # 10cm以上の上昇
@@ -409,8 +418,8 @@ class RiverStreamingPredictor:
             features['is_high_discharge'] = 1.0 if max_outflow > 20.0 else 0.0  # 20m³/s以上は高放流
         
         # 指数移動平均の更新と特徴量追加
-        self.update_ema('water_level', float(level))
-        self.update_ema('dam_outflow', float(outflow))
+        self.update_ema('water_level', level)
+        self.update_ema('dam_outflow', outflow)
         
         # EMA特徴量を追加
         if self.ema_values['water_level']['short'] is not None:
@@ -419,9 +428,9 @@ class RiverStreamingPredictor:
             features['water_level_ema_long'] = self.ema_values['water_level']['long']
             
             # EMAとの差分（トレンドからの乖離）
-            features['water_level_ema_diff_short'] = float(level) - self.ema_values['water_level']['short']
-            features['water_level_ema_diff_medium'] = float(level) - self.ema_values['water_level']['medium']
-            features['water_level_ema_diff_long'] = float(level) - self.ema_values['water_level']['long']
+            features['water_level_ema_diff_short'] = level - self.ema_values['water_level']['short']
+            features['water_level_ema_diff_medium'] = level - self.ema_values['water_level']['medium']
+            features['water_level_ema_diff_long'] = level - self.ema_values['water_level']['long']
             
             # EMAクロスオーバー（トレンド転換の検出）
             features['ema_crossover_short_medium'] = 1.0 if self.ema_values['water_level']['short'] > self.ema_values['water_level']['medium'] else 0.0
@@ -433,30 +442,30 @@ class RiverStreamingPredictor:
             features['dam_outflow_ema_long'] = self.ema_values['dam_outflow']['long']
             
             # ダム放流のEMA差分
-            features['dam_outflow_ema_diff_short'] = float(outflow) - self.ema_values['dam_outflow']['short']
+            features['dam_outflow_ema_diff_short'] = outflow - self.ema_values['dam_outflow']['short']
         
         # 移動平均（Simple Moving Average）
         if len(history) >= 3:
-            water_levels_3 = [d.get('river', {}).get('water_level', level) for d in history[-3:]] + [level]
+            water_levels_3 = [self._safe_float(d.get('river', {}).get('water_level'), level) for d in history[-3:]] + [level]
             features['water_level_sma_3'] = np.mean(water_levels_3)
-            features['water_level_sma_diff'] = float(level) - features['water_level_sma_3']
+            features['water_level_sma_diff'] = level - features['water_level_sma_3']
             
-            dam_values_3 = [d.get('dam', {}).get('outflow', 0) for d in history[-3:]] + [outflow]
+            dam_values_3 = [self._safe_float(d.get('dam', {}).get('outflow'), 0) for d in history[-3:]] + [outflow]
             features['dam_outflow_sma_3'] = np.mean(dam_values_3)
         
         if len(history) >= 6:
-            water_levels_6 = [d.get('river', {}).get('water_level', level) for d in history[-6:]] + [level]
+            water_levels_6 = [self._safe_float(d.get('river', {}).get('water_level'), level) for d in history[-6:]] + [level]
             features['water_level_sma_6'] = np.mean(water_levels_6)
             
             # ボリンジャーバンド的な特徴（変動幅の検出）
             water_std = np.std(water_levels_6)
             features['water_level_bb_upper'] = features['water_level_sma_6'] + 2 * water_std
             features['water_level_bb_lower'] = features['water_level_sma_6'] - 2 * water_std
-            features['water_level_bb_position'] = (float(level) - features['water_level_bb_lower']) / (features['water_level_bb_upper'] - features['water_level_bb_lower'] + 1e-6)
+            features['water_level_bb_position'] = (level - features['water_level_bb_lower']) / (features['water_level_bb_upper'] - features['water_level_bb_lower'] + 1e-6)
         
         # 自己相関特徴量（周期性の検出）
         if len(history) >= 9:
-            water_levels_all = [d.get('river', {}).get('water_level', level) for d in history[-9:]] + [level]
+            water_levels_all = [self._safe_float(d.get('river', {}).get('water_level'), level) for d in history[-9:]] + [level]
             
             # ラグ1, 3, 6の自己相関（NaN処理付き）
             try:
@@ -492,9 +501,9 @@ class RiverStreamingPredictor:
         features['data_quality_score'] = 1.0  # デフォルトは高品質
         
         # 物理的に不可能な値のチェック
-        if float(level) < 0 or float(level) > 10:  # 水位が負または10m以上
+        if level < 0 or level > 10:  # 水位が負または10m以上
             features['data_quality_score'] = 0.5
-        if float(outflow) < 0 or float(outflow) > 200:  # 放流量が負または200m³/s以上
+        if outflow < 0 or outflow > 200:  # 放流量が負または200m³/s以上
             features['data_quality_score'] = min(features['data_quality_score'], 0.5)
         
         # 急激すぎる変化のチェック
@@ -658,7 +667,7 @@ class RiverStreamingPredictor:
             
             for step, future in enumerate(future_data[:18], 1):
                 if 'river' in future and future['river'].get('water_level') is not None:
-                    actual_level = future['river']['water_level']
+                    actual_level = self._safe_float(future['river']['water_level'])
                     
                     if step == 1:
                         # メインパイプラインで学習（タイムスタンプを除外）

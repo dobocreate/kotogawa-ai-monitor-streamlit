@@ -449,14 +449,14 @@ class KotogawaMonitor:
                     'timestamp': formatted_timestamp,
                     'data_time': formatted_timestamp,
                     'dam': {
-                        'water_level': float(row['water_level']) if pd.notna(row['water_level']) else None,
-                        'storage_rate': float(row['storage_rate']) if pd.notna(row['storage_rate']) else None,
-                        'inflow': float(row['inflow']) if pd.notna(row['inflow']) else None,
-                        'outflow': float(row['outflow']) if pd.notna(row['outflow']) else None,
-                        'storage_change': None  # サンプルデータには含まれない
+                        'water_level': float(row['water_level']) if pd.notna(row['water_level']) else 0.0,
+                        'storage_rate': float(row['storage_rate']) if pd.notna(row['storage_rate']) else 0.0,
+                        'inflow': float(row['inflow']) if pd.notna(row['inflow']) else 0.0,
+                        'outflow': float(row['outflow']) if pd.notna(row['outflow']) else 0.0,
+                        'storage_change': 0.0  # サンプルデータには含まれない
                     },
                     'river': {
-                        'water_level': float(water_row['water_level'].iloc[0]) if not water_row.empty and pd.notna(water_row['water_level'].iloc[0]) else None,
+                        'water_level': float(water_row['water_level'].iloc[0]) if not water_row.empty and pd.notna(water_row['water_level'].iloc[0]) else 0.0,
                         'level_change': float(water_row['level_change'].iloc[0]) if not water_row.empty and pd.notna(water_row['level_change'].iloc[0]) else 0.0,
                         'status': '正常'  # サンプルデータでは常に正常とする
                     },
