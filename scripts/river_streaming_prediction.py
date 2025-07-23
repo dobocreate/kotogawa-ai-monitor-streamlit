@@ -580,42 +580,34 @@ class RiverStreamingPredictor:
                     if pred_change is None:
                         pred_change = 0
                 
-                # 物理的制約の適用
-                # 1. 基本的な制約
-                pred_level = current_level + accumulated_change + pred_change
+                # 前回の予測値を考慮した滑らかな予測
+                if step == 1:
+                    # 最初のステップ
+                    pred_level = current_level + pred_change
+                else:
+                    # 前のステップの予測値からの変化として計算
+                    prev_pred_level = current_level + accumulated_change
+                    pred_level = prev_pred_level + pred_change
+                
+                # 基本的な制約のみ適用（より自然な予測のため）
                 pred_level = max(0, pred_level)  # 負値を防ぐ
                 pred_level = min(10, pred_level)  # 10m以上は非現実的
                 
-                # 2. 変化率の制約（10分あたり最大30cmの変化）
-                max_change_per_10min = 0.3
+                # 極端な変化のみを制限（50cm/10分以上）
                 if step == 1:
                     actual_change = pred_level - current_level
                 else:
-                    prev_level = current_level + accumulated_change
-                    actual_change = pred_level - prev_level
+                    actual_change = pred_change
                 
-                if abs(actual_change) > max_change_per_10min:
-                    # 変化を制限
-                    limited_change = max_change_per_10min if actual_change > 0 else -max_change_per_10min
-                    pred_level = (current_level + accumulated_change) + limited_change
+                if abs(actual_change) > 0.5:  # 50cm以上の急激な変化は制限
+                    # 変化を穏やかに制限
+                    limited_change = 0.5 if actual_change > 0 else -0.5
+                    if step == 1:
+                        pred_level = current_level + limited_change
+                    else:
+                        pred_level = prev_pred_level + limited_change
                 
-                # 3. トレンドベースの制約
-                if 'water_level_change_rate_30min' in features:
-                    trend_rate = features['water_level_change_rate_30min']
-                    expected_change = trend_rate * (step * 10 / 60)  # 時間あたり変化率から期待値を計算
-                    
-                    # 予測がトレンドから大きく外れる場合は調整
-                    predicted_total_change = pred_level - current_level
-                    if abs(predicted_total_change - expected_change) > 0.5:  # 50cm以上の乖離
-                        # トレンドと予測の重み付け平均
-                        pred_level = 0.7 * pred_level + 0.3 * (current_level + expected_change)
-                
-                # 4. データ品質による調整
-                if features.get('data_quality_score', 1.0) < 0.8:
-                    # データ品質が低い場合は保守的な予測に調整
-                    pred_level = 0.8 * pred_level + 0.2 * current_level
-                
-                # 累積変化を更新
+                # 累積変化を更新（滑らかな連続性のため）
                 accumulated_change = pred_level - current_level
                 
             except Exception as e:
