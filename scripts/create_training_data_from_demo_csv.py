@@ -343,6 +343,90 @@ def save_diagnostics(diagnostics_data: Dict[str, Any]):
     return file_path
 
 
+def train_models_with_json(training_data):
+    """JSONデータを使用してモデルを学習"""
+    from river_streaming_prediction import RiverStreamingPredictor
+    
+    if not training_data.get("records"):
+        print("エラー: 学習データが空です")
+        return
+    
+    print(f"\nモデルを学習中... ({len(training_data['records'])}レコード)")
+    
+    # 新しいモデルを作成
+    model = RiverStreamingPredictor()
+    
+    # 学習とテストデータを分割（80%学習、20%テスト）
+    split_index = int(len(training_data['records']) * 0.8)
+    train_records = training_data['records'][:split_index]
+    test_records = training_data['records'][split_index:]
+    
+    print(f"学習データ: {len(train_records)}レコード")
+    print(f"テストデータ: {len(test_records)}レコード")
+    
+    # 学習実行
+    for i, record in enumerate(train_records):
+        if i % 100 == 0:
+            print(f"  学習進捗: {i}/{len(train_records)} ({i/len(train_records)*100:.1f}%)")
+        
+        # 現在のデータから予測
+        current_data = record['current']
+        predictions = model.predict_one(current_data)
+        
+        # 学習実行（learn_oneが履歴バッファを自動更新）
+        model.learn_one(current_data, record['future'])
+    
+    print(f"  学習進捗: {len(train_records)}/{len(train_records)} (100.0%)")
+    print("学習完了")
+    
+    # テストデータで評価
+    print("\nテストデータで評価中...")
+    for i, record in enumerate(test_records):
+        if i % 20 == 0:
+            print(f"  評価進捗: {i}/{len(test_records)} ({i/len(test_records)*100:.1f}%)")
+        
+        # 現在のデータから予測
+        current_data = record['current']
+        predictions = model.predict_one(current_data)
+        
+        # 学習実行（これによりMAEが計算される）
+        model.learn_one(current_data, record['future'])
+    
+    print(f"  評価進捗: {len(test_records)}/{len(test_records)} (100.0%)")
+    print("評価完了")
+    
+    # 診断データの生成と保存
+    create_diagnostics_for_initial_model(model, test_records, training_data)
+    
+    # モデルの保存
+    model.save_model()
+    base_model_path = Path(__file__).parent.parent / "models" / "river_base_model_v2.pkl"
+    adaptive_model_path = Path(__file__).parent.parent / "models" / "river_adaptive_model_v2.pkl"
+    
+    # 基本モデルとして保存
+    with open(base_model_path, 'wb') as f:
+        pickle.dump(model, f)
+    print(f"\n基本モデルを保存しました: {base_model_path}")
+    
+    # 適応モデル（初期状態）として保存
+    with open(adaptive_model_path, 'wb') as f:
+        pickle.dump(model, f)
+    print(f"適応モデル（初期状態）を保存しました: {adaptive_model_path}")
+    
+    # モデル情報を表示
+    model_info = model.get_model_info()
+    print(f"\n学習サンプル数: {model_info['n_samples']}")
+    print(f"平均絶対誤差 (MAE): {model_info['mae_10min']:.3f}m" if model_info['mae_10min'] else "MAE: N/A")
+    
+    # 主要時間ポイントの精度を表示
+    if model_info.get('metrics_by_step'):
+        print("\n主要時間ポイントの予測精度:")
+        for time_point in ['30min', '60min', '120min', '180min']:
+            if time_point in model_info['metrics_by_step']:
+                mae = model_info['metrics_by_step'][time_point]['mae']
+                if mae:
+                    print(f"  {time_point}: MAE = {mae:.3f}m")
+
 def train_models_with_demo_csv():
     """デモCSVデータでモデルを学習"""
     from river_streaming_prediction import RiverStreamingPredictor
