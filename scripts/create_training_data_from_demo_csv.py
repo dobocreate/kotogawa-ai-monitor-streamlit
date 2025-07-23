@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import sys
 from typing import Dict, Any
+import pickle
 
 sys.path.append(str(Path(__file__).parent))
 
@@ -396,7 +397,7 @@ def train_models_with_json(training_data):
     print("評価完了")
     
     # 診断データの生成と保存
-    create_diagnostics_for_initial_model(model, test_records, training_data)
+    create_diagnostics_for_initial_model(model, test_records)
     
     # モデルの保存
     model.save_model()
