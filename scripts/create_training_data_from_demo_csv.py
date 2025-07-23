@@ -211,32 +211,68 @@ def create_diagnostics_for_initial_model(model, training_records: list) -> Dict[
         }
     
     # 最後の100レコードで精度を評価
-    eval_records = training_records[-100:] if len(training_records) > 100 else training_records
+    # ただし、未来データがある分だけ前から取る（18ステップ先まで必要）
+    eval_start = max(0, len(training_records) - 100 - 18)
+    eval_end = len(training_records) - 18
+    eval_records = training_records[eval_start:eval_end] if eval_end > eval_start else []
     
-    for record in eval_records:
+    print(f"評価レコード数: {len(eval_records)}")
+    evaluation_count = 0
+    prediction_samples = []
+    
+    for i, record in enumerate(eval_records):
         current_data = record['current']
         predictions = model.predict_one(current_data)
         
-        # predictionsがリストの場合、辞書に変換
-        if isinstance(predictions, list):
-            pred_dict = {}
-            for i, pred in enumerate(predictions):
-                minutes = (i + 1) * 10
-                pred_dict[f"{minutes}min"] = pred.get('water_level') if isinstance(pred, dict) else pred
-            predictions = pred_dict
+        # 最初の数個の予測をサンプリング
+        if i < 3 and predictions:
+            prediction_samples.append({
+                'index': i,
+                'predictions': predictions[:3] if isinstance(predictions, list) else predictions
+            })
         
-        # 各ステップの予測と実測値を比較
-        for j, future_data in enumerate(record['future']):
-            minutes = (j + 1) * 10
-            step_key = f"{minutes}min"
-            
-            if step_key in step_metrics:
-                pred_value = predictions.get(step_key, 0) if isinstance(predictions, dict) else 0
-                true_value = future_data['river'].get('water_level', 0)
+        # predictionsがリストの場合の処理
+        if isinstance(predictions, list) and len(predictions) >= 18:
+            # 各ステップの予測と実測値を比較
+            for j in range(18):
+                pred = predictions[j]
+                future_data = record['future'][j]
+                minutes = (j + 1) * 10
+                step_key = f"{minutes}min"
                 
-                if pred_value is not None and true_value is not None:
-                    step_metrics[step_key]['mae'].update(true_value, pred_value)
-                    step_metrics[step_key]['rmse'].update(true_value, pred_value)
+                if step_key in step_metrics:
+                    # 予測値を取得（辞書の場合は'level'キー、そうでなければ直接の値）
+                    if isinstance(pred, dict):
+                        pred_value = pred.get('level', pred.get('water_level'))
+                    else:
+                        pred_value = pred
+                    
+                    true_value = future_data['river'].get('water_level')
+                    
+                    if pred_value is not None and true_value is not None:
+                        step_metrics[step_key]['mae'].update(true_value, pred_value)
+                        step_metrics[step_key]['rmse'].update(true_value, pred_value)
+                        evaluation_count += 1
+                        
+                        # デバッグ情報を最初の数回だけ出力
+                        if evaluation_count <= 10 and j < 3:
+                            print(f"  Step {j+1} ({minutes}min): pred={pred_value:.3f}, true={true_value:.3f}, diff={abs(pred_value-true_value):.3f}")
+        else:
+            print(f"警告: 予測結果の形式が不正です（record {i}）")
+    
+    print(f"評価データポイント数: {evaluation_count}")
+    
+    # サンプル予測を表示
+    if prediction_samples:
+        print("\n予測サンプル:")
+        for sample in prediction_samples[:2]:
+            print(f"  Record {sample['index']}:")
+            if isinstance(sample['predictions'], list):
+                for j, pred in enumerate(sample['predictions']):
+                    if isinstance(pred, dict):
+                        print(f"    Step {j+1}: {pred.get('level', 'N/A')}")
+                    else:
+                        print(f"    Step {j+1}: {pred}")
     
     # メトリクスを辞書形式に変換
     metrics_by_step = {}
@@ -245,6 +281,21 @@ def create_diagnostics_for_initial_model(model, training_records: list) -> Dict[
             'mae': metrics_dict['mae'].get() if hasattr(metrics_dict['mae'], 'get') else None,
             'rmse': metrics_dict['rmse'].get() if hasattr(metrics_dict['rmse'], 'get') else None
         }
+    
+    # モデル自体のMAEメトリクスも取得
+    model_mae = None
+    if hasattr(model, 'mae_metric') and hasattr(model.mae_metric, 'get'):
+        model_mae = model.mae_metric.get()
+        print(f"\nモデル内部のMAE: {model_mae:.3f}m" if model_mae else "モデル内部のMAE: N/A")
+    
+    # 10分先のMAEを優先的に使用
+    mae_10min = metrics_by_step.get('10min', {}).get('mae')
+    if mae_10min and mae_10min > 0:
+        primary_mae = mae_10min
+    elif model_mae and model_mae > 0:
+        primary_mae = model_mae
+    else:
+        primary_mae = None
     
     # 診断データの構築
     diagnostics_data = {
@@ -257,16 +308,17 @@ def create_diagnostics_for_initial_model(model, training_records: list) -> Dict[
         },
         'training_stats': {
             'total_samples': len(training_records),
+            'evaluation_samples': evaluation_count,
             'data_source': 'demo_csv',
             'period': '2023-06-25 to 2023-07-01'
         },
         'metrics_by_step': metrics_by_step,
         'initial_metrics': {
-            'mae': metrics_by_step.get('10min', {}).get('mae'),
+            'mae': primary_mae,
             'rmse': metrics_by_step.get('10min', {}).get('rmse')
         },
         'final_metrics': {
-            'mae': metrics_by_step.get('10min', {}).get('mae'),
+            'mae': primary_mae,
             'rmse': metrics_by_step.get('10min', {}).get('rmse')
         }
     }
@@ -312,11 +364,18 @@ def train_models_with_demo_csv():
     # 新しいモデルを作成
     model = RiverStreamingPredictor()
     
+    # 学習とテストデータを分割（80%学習、20%テスト）
+    split_index = int(len(training_data['records']) * 0.8)
+    train_records = training_data['records'][:split_index]
+    test_records = training_data['records'][split_index:]
+    
+    print(f"学習データ: {len(train_records)}レコード")
+    print(f"テストデータ: {len(test_records)}レコード")
+    
     # 学習実行
-    total_records = len(training_data['records'])
-    for i, record in enumerate(training_data['records']):
+    for i, record in enumerate(train_records):
         if i % 100 == 0:
-            print(f"  進捗: {i}/{total_records} ({i/total_records*100:.1f}%)")
+            print(f"  学習進捗: {i}/{len(train_records)} ({i/len(train_records)*100:.1f}%)")
         
         # 現在のデータから予測
         current_data = record['current']
@@ -325,10 +384,26 @@ def train_models_with_demo_csv():
         # 学習実行
         model.learn_one(current_data, record['future'])
     
-    print(f"  進捗: {total_records}/{total_records} (100.0%)")
+    print(f"  学習進捗: {len(train_records)}/{len(train_records)} (100.0%)")
     print("学習完了")
     
-    # 診断データを生成
+    # テストデータで評価（これによりMAEが計算される）
+    print("\nテストデータで評価中...")
+    for i, record in enumerate(test_records):
+        if i % 20 == 0:
+            print(f"  評価進捗: {i}/{len(test_records)} ({i/len(test_records)*100:.1f}%)")
+        
+        # 現在のデータから予測
+        current_data = record['current']
+        predictions = model.predict_one(current_data)
+        
+        # 予測結果を実際の値と比較して学習（これによりメトリクスが更新される）
+        model.learn_one(current_data, record['future'])
+    
+    print(f"  評価進捗: {len(test_records)}/{len(test_records)} (100.0%)")
+    print("評価完了")
+    
+    # 診断データを生成（すべての学習済みレコードを使用）
     diagnostics_data = create_diagnostics_for_initial_model(model, training_data['records'])
     
     # モデルを保存
