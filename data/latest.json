@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-07-27T16:42:26.128725+09:00",
+  "timestamp": "2025-07-27T16:49:01.436913+09:00",
   "data_time": "2025-07-27T16:40:00+09:00",
   "dam": {
     "water_level": 0.0,
@@ -22,22 +22,20 @@
     "today": {
       "weather_code": "100",
       "weather_text": "晴れ",
-      "temp_max": 32,
-      "temp_min": 32,
+      "temp_max": null,
+      "temp_min": null,
       "precipitation_probability": [
-        10,
         10
       ],
       "precipitation_times": [
-        "12時",
         "18時"
       ]
     },
     "tomorrow": {
       "weather_code": "100",
       "weather_text": "晴れ",
-      "temp_max": 33,
-      "temp_min": 27,
+      "temp_max": null,
+      "temp_min": null,
       "precipitation_probability": [
         10,
         10,
@@ -63,7 +61,7 @@
         "日中"
       ]
     },
-    "update_time": "2025-07-27T11:00:00+09:00",
+    "update_time": "2025-07-27T17:00:00+09:00",
     "weekly_forecast": [
       {
         "date": "2025-07-28",
@@ -133,36 +131,36 @@
   "precipitation_intensity": {
     "observation": [
       {
-        "datetime": "2025-07-27T16:03:05+09:00",
+        "datetime": "2025-07-27T16:04:00+09:00",
         "intensity": 0.0
       }
     ],
     "forecast": [
       {
-        "datetime": "2025-07-27T16:04:05+09:00",
+        "datetime": "2025-07-27T16:05:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-07-27T16:05:05+09:00",
+        "datetime": "2025-07-27T17:00:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-07-27T17:00:05+09:00",
+        "datetime": "2025-07-27T17:01:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-07-27T17:01:05+09:00",
+        "datetime": "2025-07-27T17:02:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-07-27T17:02:05+09:00",
+        "datetime": "2025-07-27T17:03:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-07-27T17:03:05+09:00",
+        "datetime": "2025-07-27T17:04:00+09:00",
         "intensity": 0.0
       }
     ],
-    "update_time": "2025-07-27T16:42:26.128585+09:00"
+    "update_time": "2025-07-27T16:49:01.436799+09:00"
   }
 }
