@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-07-28T04:30:31.099747+09:00",
+  "timestamp": "2025-07-28T04:39:12.441584+09:00",
   "data_time": "2025-07-28T04:30:00+09:00",
   "dam": {
     "water_level": 0.0,
@@ -22,11 +22,27 @@
     "today": {
       "weather_code": "100",
       "weather_text": "晴れ",
-      "temp_max": null,
-      "temp_min": null,
+      "temp_max": 33,
+      "temp_min": 33,
       "precipitation_probability": [
+        0,
         10,
-        10,
+        10
+      ],
+      "precipitation_times": [
+        "06時",
+        "12時",
+        "18時"
+      ]
+    },
+    "tomorrow": {
+      "weather_code": "100",
+      "weather_text": "晴れ",
+      "temp_max": 34,
+      "temp_min": 27,
+      "precipitation_probability": [
+        0,
+        0,
         10,
         10
       ],
@@ -36,14 +52,6 @@
         "12時",
         "18時"
       ]
-    },
-    "tomorrow": {
-      "weather_code": "100",
-      "weather_text": "晴れ",
-      "temp_max": null,
-      "temp_min": null,
-      "precipitation_probability": [],
-      "precipitation_times": []
     },
     "day_after_tomorrow": {
       "weather_code": "101",
@@ -57,7 +65,7 @@
         "日中"
       ]
     },
-    "update_time": "2025-07-27T17:00:00+09:00",
+    "update_time": "2025-07-28T05:00:00+09:00",
     "weekly_forecast": [
       {
         "date": "2025-07-28",
@@ -127,10 +135,10 @@
   "precipitation_intensity": {
     "observation": [
       {
-        "datetime": "2025-07-28T04:02:05+09:00",
+        "datetime": "2025-07-28T04:03:00+09:00",
         "intensity": 0.0
       }
     ],
-    "update_time": "2025-07-28T04:30:31.099565+09:00"
+    "update_time": "2025-07-28T04:39:12.441445+09:00"
   }
 }
