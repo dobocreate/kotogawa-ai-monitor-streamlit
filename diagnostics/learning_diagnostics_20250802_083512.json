@@ -1,0 +1,390 @@
+{
+  "summary": {
+    "overall_status": "失敗",
+    "start_time": "2025-08-02T08:34:55.466556+09:00",
+    "end_time": "2025-08-02T08:35:12.668253+09:00",
+    "duration_seconds": 17.201697,
+    "status_counts": {
+      "✅ 成功": 11,
+      "❌ 失敗": 1,
+      "⚠️ 警告": 0,
+      "⏭️ スキップ": 1,
+      "⏸️ 未実行": 25,
+      "⏳ 実行中": 1
+    },
+    "failed_steps": [
+      {
+        "id": "4.1_model_load",
+        "name": "既存モデルの読み込み",
+        "error": "'RiverDualModelPredictor' object has no attribute 'adaptive_weight'"
+      }
+    ],
+    "warning_steps": [],
+    "total_steps": 39
+  },
+  "phases": {
+    "1_data_acquisition": {
+      "name": "データ取得フェーズ",
+      "status": "✅ 成功",
+      "steps": [
+        {
+          "name": "最新データファイルの確認",
+          "status_text": "✅ 成功",
+          "details": {
+            "file_path": "data/latest.json",
+            "file_size": 3860,
+            "data_time": "2025-08-02T08:30:00+09:00"
+          },
+          "timestamp": "2025-08-02T08:34:55.466806+09:00",
+          "id": "1.1_file_check"
+        },
+        {
+          "name": "データファイルの読み込み",
+          "status_text": "✅ 成功",
+          "details": {
+            "data_source": "latest.json"
+          },
+          "timestamp": "2025-08-02T08:34:55.466815+09:00",
+          "id": "1.2_file_read"
+        },
+        {
+          "name": "データ形式の検証",
+          "status_text": "✅ 成功",
+          "details": {
+            "has_river_data": true,
+            "has_dam_data": true,
+            "has_rainfall_data": true,
+            "has_water_level": true,
+            "has_outflow": true
+          },
+          "timestamp": "2025-08-02T08:34:55.466830+09:00",
+          "id": "1.3_format_validation"
+        },
+        {
+          "name": "タイムスタンプの妥当性確認",
+          "status_text": "✅ 成功",
+          "details": {
+            "timestamp": "2025-08-02T08:30:00+09:00",
+            "age_minutes": 4.924447333333333
+          },
+          "timestamp": "2025-08-02T08:34:55.466850+09:00",
+          "id": "1.4_timestamp_check"
+        }
+      ]
+    },
+    "2_preprocessing": {
+      "name": "データ前処理フェーズ",
+      "status": "✅ 成功",
+      "steps": [
+        {
+          "name": "欠損値の検出と処理",
+          "status_text": "✅ 成功",
+          "details": {
+            "all_fields_present": true
+          },
+          "timestamp": "2025-08-02T08:34:55.466861+09:00",
+          "id": "2.1_missing_values"
+        },
+        {
+          "name": "異常値の検出",
+          "status_text": "✅ 成功",
+          "details": {
+            "no_outliers": true
+          },
+          "timestamp": "2025-08-02T08:34:55.466869+09:00",
+          "id": "2.2_outlier_detection"
+        },
+        {
+          "name": "時系列の連続性確認",
+          "status_text": "⏭️ スキップ",
+          "details": {
+            "reason": "単一データポイントのため連続性チェック不要"
+          },
+          "timestamp": "2025-08-02T08:34:55.466878+09:00",
+          "id": "2.3_continuity_check"
+        },
+        {
+          "name": "特徴量の抽出",
+          "status_text": "✅ 成功",
+          "details": {
+            "extracted_features": [
+              "water_level",
+              "outflow",
+              "rainfall"
+            ]
+          },
+          "timestamp": "2025-08-02T08:34:55.466883+09:00",
+          "id": "2.4_feature_extraction"
+        }
+      ]
+    },
+    "3_learning_data": {
+      "name": "学習データ確認フェーズ",
+      "status": "✅ 成功",
+      "steps": [
+        {
+          "name": "過去の予測データ確認",
+          "status_text": "✅ 成功",
+          "details": {
+            "predictions_found": 10,
+            "current_time": "2025-08-02T08:30:00+09:00"
+          },
+          "timestamp": "2025-08-02T08:34:55.472447+09:00",
+          "id": "3.1_past_predictions_check"
+        },
+        {
+          "name": "予測精度の計算",
+          "status_text": "✅ 成功",
+          "details": {
+            "predictions_count": 10,
+            "average_error": 0.382
+          },
+          "timestamp": "2025-08-02T08:34:55.472481+09:00",
+          "id": "3.2_prediction_accuracy_check"
+        },
+        {
+          "name": "学習データの準備状況",
+          "status_text": "✅ 成功",
+          "details": {
+            "learning_items": 10
+          },
+          "timestamp": "2025-08-02T08:34:55.472486+09:00",
+          "id": "3.3_learning_data_ready"
+        }
+      ]
+    },
+    "4_model_init": {
+      "name": "モデル初期化フェーズ",
+      "status": "❌ 失敗",
+      "steps": [
+        {
+          "name": "既存モデルの読み込み",
+          "status_text": "❌ 失敗",
+          "details": {
+            "model_type": "dual_model_v2",
+            "base_model": {
+              "loaded": true,
+              "samples": 1921,
+              "mae_10min": 0.011
+            },
+            "adaptive_model": {
+              "loaded": true,
+              "samples": 1921,
+              "mae_10min": 0.011,
+              "additional_samples": 0
+            }
+          },
+          "timestamp": "2025-08-02T08:35:12.291484+09:00",
+          "error": {
+            "message": "'RiverDualModelPredictor' object has no attribute 'adaptive_weight'",
+            "type": "AttributeError",
+            "traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/kotogawa-ai-monitor-streamlit/kotogawa-ai-monitor-streamlit/scripts/streaming_train_with_diagnostics.py\", line 299, in initialize_model\n    \"adaptive_weight\": predictor.adaptive_weight\nAttributeError: 'RiverDualModelPredictor' object has no attribute 'adaptive_weight'\n"
+          },
+          "id": "4.1_model_load"
+        },
+        {
+          "name": "モデルの整合性確認",
+          "status_text": "⏳ 実行中",
+          "details": {},
+          "timestamp": "2025-08-02T08:35:12.291470+09:00",
+          "id": "4.2_model_integrity"
+        },
+        {
+          "name": "Riverモジュールのインポート",
+          "status_text": "✅ 成功",
+          "details": {
+            "river_version": "0.22.0"
+          },
+          "timestamp": "2025-08-02T08:34:55.472524+09:00",
+          "id": "4.3_river_import"
+        },
+        {
+          "name": "パイプラインの構築",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "4.4_pipeline_build"
+        }
+      ]
+    },
+    "5_prediction": {
+      "name": "予測実行フェーズ",
+      "status": "⏳ 実行中",
+      "steps": [
+        {
+          "name": "現在データでの予測実行",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "5.1_prediction_run"
+        },
+        {
+          "name": "各ステップの予測値生成",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "5.2_step_predictions"
+        },
+        {
+          "name": "予測値の妥当性確認",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "5.3_prediction_validation"
+        },
+        {
+          "name": "信頼度スコアの計算",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "5.4_confidence_calc"
+        }
+      ]
+    },
+    "6_learning": {
+      "name": "学習実行フェーズ",
+      "status": "⏳ 実行中",
+      "steps": [
+        {
+          "name": "オンライン学習の実行",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "6.1_online_learning"
+        },
+        {
+          "name": "各時間ステップでの学習",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "6.2_step_learning"
+        },
+        {
+          "name": "ドリフト検出の実行",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "6.3_drift_detection"
+        },
+        {
+          "name": "学習エラーのハンドリング",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "6.4_error_handling"
+        }
+      ]
+    },
+    "7_metrics": {
+      "name": "評価メトリクス更新フェーズ",
+      "status": "⏳ 実行中",
+      "steps": [
+        {
+          "name": "MAEの計算と更新",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "7.1_mae_update"
+        },
+        {
+          "name": "RMSEの計算と更新",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "7.2_rmse_update"
+        },
+        {
+          "name": "ステップ別精度の記録",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "7.3_step_metrics"
+        },
+        {
+          "name": "ローリング統計の更新",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "7.4_rolling_stats"
+        }
+      ]
+    },
+    "8_save": {
+      "name": "モデル保存フェーズ",
+      "status": "⏳ 実行中",
+      "steps": [
+        {
+          "name": "モデルのシリアライズ",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "8.1_model_serialize"
+        },
+        {
+          "name": "保存先ディレクトリの確認",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "8.2_save_directory"
+        },
+        {
+          "name": "ファイル書き込みの実行",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "8.3_file_write"
+        },
+        {
+          "name": "保存成功の確認",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "8.4_save_verify"
+        }
+      ]
+    },
+    "9_history": {
+      "name": "学習履歴記録フェーズ",
+      "status": "⏳ 実行中",
+      "steps": [
+        {
+          "name": "学習実行時刻の記録",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "9.1_time_record"
+        },
+        {
+          "name": "処理データ数の記録",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "9.2_data_count"
+        },
+        {
+          "name": "エラー発生箇所の記録",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "9.3_error_record"
+        },
+        {
+          "name": "成功/失敗ステータスの記録",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "9.4_status_record"
+        }
+      ]
+    },
+    "10_diagnostics": {
+      "name": "診断情報生成フェーズ",
+      "status": "⏳ 実行中",
+      "steps": [
+        {
+          "name": "モデル性能指標の生成",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "10.1_performance_metrics"
+        },
+        {
+          "name": "ドリフト検出履歴の生成",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "10.2_drift_history"
+        },
+        {
+          "name": "データ品質統計の生成",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "10.3_data_quality"
+        },
+        {
+          "name": "次回学習推奨時刻の計算",
+          "status_text": "⏸️ 未実行",
+          "details": {},
+          "id": "10.4_next_schedule"
+        }
+      ]
+    }
+  }
+}
