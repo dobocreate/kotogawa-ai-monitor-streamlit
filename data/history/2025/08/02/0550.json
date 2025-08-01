@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-02T05:51:45.127897+09:00",
+  "timestamp": "2025-08-02T05:58:21.940989+09:00",
   "data_time": "2025-08-02T05:50:00+09:00",
   "dam": {
     "water_level": 0.0,
@@ -133,7 +133,12 @@
     ]
   },
   "precipitation_intensity": {
-    "observation": [],
-    "update_time": null
+    "observation": [
+      {
+        "datetime": "2025-08-02T05:05:00+09:00",
+        "intensity": 0.0
+      }
+    ],
+    "update_time": "2025-08-02T05:58:21.940868+09:00"
   }
 }
