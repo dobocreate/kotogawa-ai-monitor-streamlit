@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-03T16:43:11.106057+09:00",
+  "timestamp": "2025-08-03T16:49:11.780556+09:00",
   "data_time": "2025-08-03T16:40:00+09:00",
   "dam": {
     "water_level": 0.0,
@@ -20,28 +20,26 @@
   },
   "weather": {
     "today": {
-      "weather_code": "100",
-      "weather_text": "晴れ",
-      "temp_max": 33,
-      "temp_min": 33,
+      "weather_code": "111",
+      "weather_text": "晴れ　夜遅く　くもり",
+      "temp_max": null,
+      "temp_min": null,
       "precipitation_probability": [
-        10,
         10
       ],
       "precipitation_times": [
-        "12時",
         "18時"
       ]
     },
     "tomorrow": {
       "weather_code": "201",
-      "weather_text": "くもり　昼前　まで　時々　晴れ　所により　明け方　から　雨　で　雷を伴う",
-      "temp_max": 32,
-      "temp_min": 27,
+      "weather_text": "くもり　昼前　まで　時々　晴れ　所により　昼前　から　雨　で　雷を伴う",
+      "temp_max": null,
+      "temp_min": null,
       "precipitation_probability": [
+        10,
         20,
-        20,
-        20,
+        30,
         20
       ],
       "precipitation_times": [
@@ -54,7 +52,7 @@
     "day_after_tomorrow": {
       "weather_code": "200",
       "weather_text": "くもり",
-      "temp_max": 31,
+      "temp_max": 33,
       "temp_min": 28,
       "precipitation_probability": [
         40
@@ -63,7 +61,7 @@
         "日中"
       ]
     },
-    "update_time": "2025-08-03T11:00:00+09:00",
+    "update_time": "2025-08-03T17:00:00+09:00",
     "weekly_forecast": [
       {
         "date": "2025-08-04",
@@ -80,7 +78,7 @@
         "weather_code": "200",
         "weather_text": "くもり",
         "precipitation_probability": 40,
-        "temp_max": 31,
+        "temp_max": 33,
         "temp_min": 28
       },
       {
@@ -133,36 +131,36 @@
   "precipitation_intensity": {
     "observation": [
       {
-        "datetime": "2025-08-03T16:03:05+09:00",
+        "datetime": "2025-08-03T16:04:00+09:00",
         "intensity": 0.0
       }
     ],
     "forecast": [
       {
-        "datetime": "2025-08-03T16:04:05+09:00",
+        "datetime": "2025-08-03T16:05:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-08-03T16:05:05+09:00",
+        "datetime": "2025-08-03T17:00:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-08-03T17:00:05+09:00",
+        "datetime": "2025-08-03T17:01:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-08-03T17:01:05+09:00",
+        "datetime": "2025-08-03T17:02:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-08-03T17:02:05+09:00",
+        "datetime": "2025-08-03T17:03:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-08-03T17:03:05+09:00",
+        "datetime": "2025-08-03T17:04:00+09:00",
         "intensity": 0.0
       }
     ],
-    "update_time": "2025-08-03T16:43:11.105904+09:00"
+    "update_time": "2025-08-03T16:49:11.780431+09:00"
   }
 }
