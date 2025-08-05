@@ -134,7 +134,6 @@
   },
   "precipitation_intensity": {
     "observation": [],
-    "forecast": [],
     "update_time": null
   }
 }
