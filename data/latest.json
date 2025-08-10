@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-11T06:41:51.537797+09:00",
+  "timestamp": "2025-08-11T06:47:47.569660+09:00",
   "data_time": "2025-08-11T06:40:00+09:00",
   "dam": {
     "water_level": 0.0,
@@ -135,36 +135,36 @@
   "precipitation_intensity": {
     "observation": [
       {
-        "datetime": "2025-08-11T06:03:05+09:00",
-        "intensity": 23.5
+        "datetime": "2025-08-11T06:04:00+09:00",
+        "intensity": 19.5
       }
     ],
     "forecast": [
       {
-        "datetime": "2025-08-11T06:04:05+09:00",
-        "intensity": 12.5
+        "datetime": "2025-08-11T06:05:00+09:00",
+        "intensity": 9.25
       },
       {
-        "datetime": "2025-08-11T06:05:05+09:00",
-        "intensity": 7.75
+        "datetime": "2025-08-11T07:00:00+09:00",
+        "intensity": 8.25
       },
       {
-        "datetime": "2025-08-11T07:00:05+09:00",
-        "intensity": 5.75
+        "datetime": "2025-08-11T07:01:00+09:00",
+        "intensity": 9.75
       },
       {
-        "datetime": "2025-08-11T07:01:05+09:00",
-        "intensity": 6.25
+        "datetime": "2025-08-11T07:02:00+09:00",
+        "intensity": 24.5
       },
       {
-        "datetime": "2025-08-11T07:02:05+09:00",
-        "intensity": 11.5
+        "datetime": "2025-08-11T07:03:00+09:00",
+        "intensity": 32.5
       },
       {
-        "datetime": "2025-08-11T07:03:05+09:00",
-        "intensity": 35.5
+        "datetime": "2025-08-11T07:04:00+09:00",
+        "intensity": 27.5
       }
     ],
-    "update_time": "2025-08-11T06:41:51.537692+09:00"
+    "update_time": "2025-08-11T06:47:47.569499+09:00"
   }
 }
