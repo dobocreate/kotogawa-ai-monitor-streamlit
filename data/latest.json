@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-10T16:40:52.331404+09:00",
+  "timestamp": "2025-08-10T16:46:33.334857+09:00",
   "data_time": "2025-08-10T16:40:00+09:00",
   "dam": {
     "water_level": 0.0,
@@ -21,28 +21,26 @@
   "weather": {
     "today": {
       "weather_code": "300",
-      "weather_text": "雨　所により　夜のはじめ頃　まで　雷を伴い　非常に　激しく　降る",
-      "temp_max": 29,
-      "temp_min": 29,
+      "weather_text": "雨　所により　雷を伴い　非常に　激しく　降る",
+      "temp_max": null,
+      "temp_min": null,
       "precipitation_probability": [
-        90,
         90
       ],
       "precipitation_times": [
-        "12時",
         "18時"
       ]
     },
     "tomorrow": {
       "weather_code": "300",
       "weather_text": "雨　所により　朝　まで　雷を伴い　激しく　降る",
-      "temp_max": 31,
-      "temp_min": 27,
+      "temp_max": null,
+      "temp_min": null,
       "precipitation_probability": [
         80,
         60,
-        50,
-        80
+        60,
+        60
       ],
       "precipitation_times": [
         "00時",
@@ -52,8 +50,8 @@
       ]
     },
     "day_after_tomorrow": {
-      "weather_code": "202",
-      "weather_text": "くもり一時雨",
+      "weather_code": "203",
+      "weather_text": "くもり時々雨",
       "temp_max": 29,
       "temp_min": 26,
       "precipitation_probability": [
@@ -63,7 +61,7 @@
         "日中"
       ]
     },
-    "update_time": "2025-08-10T11:00:00+09:00",
+    "update_time": "2025-08-10T17:00:00+09:00",
     "weekly_forecast": [
       {
         "date": "2025-08-11",
@@ -77,8 +75,8 @@
       {
         "date": "2025-08-12",
         "day_of_week": "Tue",
-        "weather_code": "202",
-        "weather_text": "くもり一時雨",
+        "weather_code": "203",
+        "weather_text": "くもり時々雨",
         "precipitation_probability": 60,
         "temp_max": 29,
         "temp_min": 26
@@ -133,36 +131,36 @@
   "precipitation_intensity": {
     "observation": [
       {
-        "datetime": "2025-08-10T16:03:05+09:00",
-        "intensity": 60.5
+        "datetime": "2025-08-10T16:04:00+09:00",
+        "intensity": 45.5
       }
     ],
     "forecast": [
       {
-        "datetime": "2025-08-10T16:04:05+09:00",
-        "intensity": 13.5
+        "datetime": "2025-08-10T16:05:00+09:00",
+        "intensity": 20.5
       },
       {
-        "datetime": "2025-08-10T16:05:05+09:00",
-        "intensity": 61.5
+        "datetime": "2025-08-10T17:00:00+09:00",
+        "intensity": 30.5
       },
       {
-        "datetime": "2025-08-10T17:00:05+09:00",
-        "intensity": 11.5
+        "datetime": "2025-08-10T17:01:00+09:00",
+        "intensity": 10.5
       },
       {
-        "datetime": "2025-08-10T17:01:05+09:00",
+        "datetime": "2025-08-10T17:02:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-08-10T17:02:05+09:00",
+        "datetime": "2025-08-10T17:03:00+09:00",
         "intensity": 0.0
       },
       {
-        "datetime": "2025-08-10T17:03:05+09:00",
-        "intensity": 0.35
+        "datetime": "2025-08-10T17:04:00+09:00",
+        "intensity": 0.0
       }
     ],
-    "update_time": "2025-08-10T16:40:52.331280+09:00"
+    "update_time": "2025-08-10T16:46:33.334736+09:00"
   }
 }
