@@ -1,10 +1,11 @@
-name: Weekly Adaptive Model Reset
+# TEMPORARILY DISABLED FOR DEVELOPMENT
+# name: Weekly Adaptive Model Reset
 
-on:
-  schedule:
+# on:
+  # schedule:
     # 毎週月曜日の午前3時（JST）に実行
     # UTC時間で日曜日の18:00
-    - cron: '0 18 * * 0'
+    # - cron: '0 18 * * 0'
   
   # 手動実行を許可
   workflow_dispatch:

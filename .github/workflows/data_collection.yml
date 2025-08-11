@@ -1,9 +1,10 @@
-name: Data Collection
+# TEMPORARILY DISABLED FOR DEVELOPMENT
+# name: Data Collection
 
-on:
-  schedule:
+# on:
+  # schedule:
     # 10分ごとに実行 (UTC時間) - 毎時3分から開始
-    - cron: '3,13,23,33,43,53 * * * *'
+    # - cron: '3,13,23,33,43,53 * * * *'
     # 開発用設定: 1時間ごとに実行
     # - cron: '3 * * * *'
   workflow_dispatch: # 手動実行も可能
